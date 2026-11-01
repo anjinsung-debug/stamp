@@ -200,7 +200,7 @@ function itemsView() {
 }
 
 // 사진 판별 결과: AI가 고른 후보를 보여 주고, 사용자가 눌러서 확정
-const PHOTO_ERR = { no_key: "사진 인식이 아직 설정되지 않았어요.", quota: "오늘 사진 인식 횟수를 다 썼어요." };
+const PHOTO_ERR = { no_key: "사진 인식이 아직 설정되지 않았어요.", quota: "오늘 사진 인식 횟수를 다 썼어요.", limit: "사진 확인을 짧은 시간에 너무 많이 했어요. 잠시 뒤에 다시 해 주세요." };
 function photoView() {
   const p = view.photo;
   if (!p) return "";
@@ -230,7 +230,9 @@ async function identifyPhoto(file) {
   try {
     const r = await fetch("/api/identify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: await shrink(file), mime: "image/jpeg" }) });
     const data = await r.json().catch(() => ({}));
-    view.photo = r.ok ? { status: "done", result: data } : { status: "error", error: data.error };
+    // 우리 서버는 error를 문자열로 줌. 429인데 문자열이 아니면 Vercel 방화벽의 IP별 횟수 제한에 걸린 것
+    const err = typeof data.error === "string" ? data.error : r.status === 429 ? "limit" : undefined;
+    view.photo = r.ok ? { status: "done", result: data } : { status: "error", error: err };
   } catch {
     view.photo = { status: "error" };
   }
