@@ -273,15 +273,37 @@ function resultView() {
     <p style="margin-top:14px"><button class="full" data-act="add">내 짐에 추가</button></p></div>`;
 }
 
+// 기본 항목 + 여행 국가 항목 (입국 금지 규정, 공식 안내에 어댑터가 필요하다고 나온 나라)
+function checklist() {
+  const c = country();
+  const extra = c.rules.filter((r) => r.level === "banned").flatMap((r) => r.items.map((id) =>
+    ({ id: `${state.trip.country}_no_${id}`, cat: `${c.name} 주의`, text: `${itemById(id).name} 넣지 않기`, item: id })));
+  if (c.info.adapter) extra.unshift({ id: `${state.trip.country}_adapter`, cat: `${c.name} 주의`, text: `여행용 어댑터 (${c.info.plug.split(" — ")[0]})` });
+  return [...D.checklist, ...extra];
+}
+
+function checklistView() {
+  const list = checklist();
+  const done = state.checklist_done || [];
+  const n = list.filter((x) => done.includes(x.id)).length;
+  const cats = [...new Set(list.map((x) => x.cat))];
+  return `<div class="sheet checklist"><div class="col-head"><div><h3>챙길 것</h3><p class="muted">${n === list.length ? "다 챙겼어요." : "가방에 넣었으면 체크하세요."}</p></div>
+    <div class="count" aria-label="${list.length}개 중 ${n}개 챙김"><b>${two(n)}</b><span>/ ${list.length}</span></div></div>
+    ${cats.map((cat) => `<h4>${esc(cat)}</h4><ul class="todos">${list.filter((x) => x.cat === cat).map((x) =>
+      `<li><label><input type="checkbox" data-check="${x.id}" ${done.includes(x.id) ? "checked" : ""}>${esc(x.text)}</label>${x.item
+        ? `<button class="link" data-tab="items" data-item="${x.item}">규정 보기</button>` : ""}</li>`).join("")}</ul>`).join("")}</div>`;
+}
+
 function bagView() {
   const bag = state.bag || [];
-  if (!bag.length) return `<h2>내 짐</h2><div class="sheet"><p>아직 담은 물건이 없어요.</p><button data-tab="items">물건 확인하기</button></div>`;
+  const head = `<h2>내 짐 <span class="muted">${country().name} 기준</span></h2>${checklistView()}`;
+  if (!bag.length) return `${head}<div class="sheet"><h3>판정한 물건</h3><p>아직 담은 물건이 없어요.</p><button data-tab="items">물건 확인하기</button></div>`;
   const groups = {};
   bag.forEach((b, idx) => {
     const item = itemById(b.item_id);
     (groups[judge(item, b.answers).bucket] ||= []).push({ item, b, idx });
   });
-  return `<h2>내 짐 <span class="muted">${country().name} 기준</span></h2>` + Object.keys(BUCKET).filter((k) => groups[k]).map((k) =>
+  return head + Object.keys(BUCKET).filter((k) => groups[k]).map((k) =>
     `<div class="sheet group"><h3>${BUCKET[k]}</h3><ul>${groups[k].map(({ item, b, idx }) =>
       `<li><span>${esc(item.name)}${b.answers?.[item.rule?.field] ? ` (${num(b.answers[item.rule.field])}${item.rule.unit})` : ""}</span>
        <button class="link" data-del="${idx}">빼기</button></li>`).join("")}</ul></div>`).join("");
@@ -355,6 +377,14 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("change", (e) => {
   if (e.target.id === "photo") return e.target.files[0] && identifyPhoto(e.target.files[0]);
+  if (e.target.dataset.check) {
+    const done = new Set(state.checklist_done || []);
+    e.target.checked ? done.add(e.target.dataset.check) : done.delete(e.target.dataset.check);
+    state.checklist_done = [...done];
+    save();
+    render(); // 개수 다시 그리기, 키보드 사용자를 위해 같은 칸에 포커스 유지
+    return document.querySelector(`[data-check="${e.target.dataset.check}"]`)?.focus();
+  }
   const { todo, val } = e.target.dataset;
   if (todo == null && val == null) return;
   const s = D.steps.find((x) => x.id === view.step);

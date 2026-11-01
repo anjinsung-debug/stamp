@@ -171,7 +171,7 @@ const STAMP_DATA = {
         { items: ["medicine", "liquid_medicine"], level: "declare", message: "코데인·디히드로코데인이 1%를 넘게 든 약은 일본에서 마약으로 봐요. 가져가려면 입국 2주 전까지 일본 지방후생국 허가를 받아야 해요. 1% 이하면 마약에서 빠져요. 성분표를 확인하세요.", source: [SRC.jpNarcLaw, SRC.jpNarcPermit] },
         { items: ["medicine"], level: "declare", message: "슈도에페드린·에페드린을 10% 넘게 함유한 약은 사전 허가 없이 가져갈 수 없어요. 성분표를 확인하세요.", source: SRC.jpStimulant },
       ],
-      info: { voltage: "100V (동쪽 50Hz·서쪽 60Hz)", plug: "A형 — 한국 플러그는 어댑터 필요", source: SRC.jpElec },
+      info: { voltage: "100V (동쪽 50Hz·서쪽 60Hz)", plug: "A형 — 한국 플러그는 어댑터 필요", adapter: true, source: SRC.jpElec },
       emergency: [["경찰", "110"], ["화재·구급", "119"], ["JNTO 여행자 핫라인 (한국어, 24시간)", "050-3816-2787"]],
       emergencySource: SRC.jpEmerg,
     },
@@ -194,7 +194,7 @@ const STAMP_DATA = {
         { items: ["dairy"], level: "banned", message: "우유·요구르트·치즈·버터·연유 같은 유제품은 중국에 가지고 들어갈 수 없어요.", source: SRC.cnFood },
         { items: ["power_bank"], level: "info", message: "중국 국내선을 탈 계획이면 3C 표시가 있는 보조배터리만 가져갈 수 있어요.", source: SRC.cn3c },
       ],
-      info: { voltage: "220V, 50Hz (한국은 60Hz)", plug: "11자 납작 2핀, V자 납작 3핀 등 여러 종류 — 어댑터가 필요할 수 있어요", source: SRC.cnPower },
+      info: { voltage: "220V, 50Hz (한국은 60Hz)", plug: "11자 납작 2핀, V자 납작 3핀 등 여러 종류 — 어댑터가 필요할 수 있어요", adapter: true, source: SRC.cnPower },
       emergency: [["공안(범죄)", "110"], ["화재", "119"], ["응급", "120"], ["교통사고", "122"], ["주중 한국대사관 긴급 (24시간)", "+86-186-1173-0089"]],
       emergencySource: SRC.cnEmerg,
     },
@@ -254,4 +254,21 @@ const STAMP_DATA = {
   ],
 
   fallbackLinks: [SRC.icnRestricted, SRC.kacPhoto],
+
+  // 짐 체크리스트 기본 항목. item이 있으면 그 물건의 판정으로 연결.
+  // 나라별 항목은 countries의 입국 금지 규정·플러그 정보에서 자동으로 만듦 (app.js checklist)
+  checklist: [
+    { id: "passport", cat: "서류", text: "여권" },
+    { id: "passport_copy", cat: "서류", text: "여권 사본·사진 (여권과 따로 보관)" },
+    { id: "ticket", cat: "서류", text: "전자 항공권 (휴대폰에 저장)" },
+    { id: "stay", cat: "서류", text: "숙소 예약 확인" },
+    { id: "insurance", cat: "서류", text: "여행자보험 가입 내역" },
+    { id: "card", cat: "돈", text: "해외 결제 되는 카드" },
+    { id: "cash", cat: "돈", text: "현지 돈 조금" },
+    { id: "charger", cat: "전자기기", text: "휴대폰 충전기" },
+    { id: "power_bank", cat: "전자기기", text: "보조배터리 (기내 가방)", item: "power_bank" },
+    { id: "medicine", cat: "생활", text: "상비약·먹는 약", item: "medicine" },
+    { id: "toiletries", cat: "생활", text: "세면도구 (기내는 100ml 이하)", item: "liquid_cosmetic" },
+    { id: "clothes", cat: "생활", text: "갈아입을 옷" },
+  ],
 };
