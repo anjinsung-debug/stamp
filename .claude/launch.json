@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "stamp-prototype",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--directory",
+        "stamp-prototype"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "stamp-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "stamp-prototype/dev.js"
+      ],
+      "port": 8766
+    }
+  ]
+}
