@@ -26,6 +26,25 @@ const ICONS = {
   emergency: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5h.01"/>',
 };
 const icon = (id) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[id] || ""}</svg>`;
+
+// 물건 확인 목록 묶음 (같은 선 굵기의 문양)
+const GICONS = {
+  battery: '<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2M7 10v4M11 10v4"/>',
+  drop: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  blade: '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M8.5 15L19 4M15.5 15L5 4"/>',
+  flame: '<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 2 1.5 3 2.5 3 0-3-1-5 0-8z"/>',
+  food: '<path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M9 7c0-2 2-2 2-4M14 7c0-2 2-2 2-4"/>',
+  pill: '<rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="M9.5 9.5l5 5"/>',
+};
+const gicon = (id) => `<svg class="gico" viewBox="0 0 24 24" aria-hidden="true">${GICONS[id]}</svg>`;
+const GROUPS = [
+  ["배터리·전자기기", "battery", ["power_bank", "spare_battery", "electronics", "e_cigarette", "hair_iron"]],
+  ["액체·스프레이", "drop", ["liquid_cosmetic", "lens_solution", "spray", "alcohol", "duty_free_liquid"]],
+  ["칼·가위·도구", "blade", ["scissors", "knife", "multi_tool", "razor", "nail_clipper", "selfie_stick"]],
+  ["불", "flame", ["lighter", "torch_lighter", "matches"]],
+  ["음식", "food", ["meat_product", "fresh_fruit", "dairy", "instant_food"]],
+  ["약", "pill", ["medicine", "liquid_medicine"]],
+];
 const two = (n) => String(n).padStart(2, "0");
 const TILTS = [-8, 5, -3, 9, -6, 3, -10, 7, -4, 6];
 
@@ -88,11 +107,13 @@ function render() {
 }
 
 function renderSetup() {
-  const opts = Object.entries(D.countries).map(([k, c]) => `<option value="${k}">${c.name}</option>`).join("");
+  // 나라는 큰 버튼 3개 (무비자 기간은 외교부 사증면제 자료 기준)
+  const picks = Object.entries(D.countries).map(([k, c], i) =>
+    `<label class="pick"><input type="radio" name="c" value="${k}" ${i === 0 ? "checked" : ""}><span><b>${c.name}</b><small>무비자 ${c.visaDays}일</small></span></label>`).join("");
   app.innerHTML = `<div class="narrow" style="max-width:440px;margin:24px auto 0">
     <div class="cover"><div class="emblem">STAMP</div><h1>첫 여권</h1><p>처음이면 다들 헷갈려요. 하나씩 같이 준비해요.</p></div>
     <div class="sheet">
-      <label for="c">어디로 가나요?</label><select id="c">${opts}</select>
+      <fieldset class="picks"><legend>어디로 가나요?</legend>${picks}</fieldset>
       <label for="d">언제 출발하나요?</label><input id="d" type="date" required>
       <p style="margin-top:16px"><button class="full" data-act="start">여권 만들기</button></p>
       <div class="footnote">이미 여행 중이면 출발한 날짜를 넣으세요. 로그인 없이 이 기기에만 저장돼요.</div>
@@ -181,8 +202,13 @@ function stepView() {
 function itemsView() {
   if (view.item) return resultView();
   const hits = search(view.query);
-  const chips = (list) => `<div class="chips">${list.map((i) => `<button data-item="${i.id}">${esc(i.name)}</button>`).join("")}</div>`;
-  const list = !view.query ? chips(D.items)
+  // 여행 국가에서 입국 금지인 물건은 칩에 작은 "금지" 표시
+  const banned = new Set(country().rules.filter((r) => r.level === "banned").flatMap((r) => r.items));
+  const chips = (list) => `<div class="chips">${list.map((i) => `<button data-item="${i.id}">${esc(i.name)}${banned.has(i.id)
+    ? `<span class="ban">${country().name} 금지</span>` : ""}</button>`).join("")}</div>`;
+  const grouped = `<div class="groups">${GROUPS.map(([title, ic, ids]) =>
+    `<h3>${gicon(ic)}${title}</h3>${chips(ids.map(itemById))}`).join("")}</div>`;
+  const list = !view.query ? grouped
     : hits.length ? chips(hits)
     : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요. 공식 안내에서 확인하세요.</p>${D.fallbackLinks.map(srcLink).join("")}`;
   return `<h2>물건 확인</h2><div class="sheet">
@@ -254,11 +280,20 @@ function resultView() {
   }
   const [main, sub] = VERDICT[r.status];
   const isMed = item.category === "medicine";
-  return `${back}<div class="sheet">
+  const c = country();
+  // 탑승권: 위는 물건과 여정(한국 출국 → 여행 국가 입국), 절취선 아래는 두 판정
+  const entry = r.rules.some((x) => x.level === "banned") ? "banned" : r.rules.some((x) => x.level === "declare") ? "declare" : r.rules.length ? "info" : "ok";
+  const ENTRY = { banned: "입국 금지", declare: "신고·서류 확인", info: "참고할 점 있음", ok: "제한 없음" };
+  return `${back}<article class="pass" aria-label="${esc(item.name)} 판정">
     ${r.banner ? `<div class="banner">가져가지 마세요</div>` : ""}
-    <h2 style="margin-top:0">${esc(item.name)}</h2>
-    <div class="muted">한국 공항 출국</div>
-    <div class="verdict s-${r.status}">${main}<small>${sub}</small></div>
+    <div class="pass-top"><h2>${esc(item.name)}</h2>
+      <div class="route"><span>한국<small>출국</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15l14-6a1.6 1.6 0 0 0-1-3l-4 1.5L8 4 6.5 4.7l3.5 4.4-4 1.6-2-1.5-1.2.5 2 4z"/></svg></i><span>${c.name}<small>입국</small></span></div></div>
+    <div class="pass-cut" aria-hidden="true"></div>
+    <div class="pass-stub">
+      <div><small>한국 공항 출국</small><div class="verdict s-${r.status}">${main}<small>${sub}</small></div></div>
+      <div><small>${c.name} 입국</small><b class="entry e-${entry}">${ENTRY[entry]}</b></div>
+    </div></article>
+  <div class="sheet">
     ${r.note ? `<p>${r.note}</p>` : ""}${item.reason ? `<p class="muted">${item.reason}</p>` : ""}
     ${(item.sources || []).map(srcLink).join("")}
     ${r.status == null ? D.fallbackLinks.map(srcLink).join("") : ""}
@@ -299,9 +334,9 @@ function bagView() {
     (groups[judge(item, b.answers).bucket] ||= []).push({ item, b, idx });
   });
   return head + Object.keys(BUCKET).filter((k) => groups[k]).map((k) =>
-    `<div class="sheet group"><h3>${BUCKET[k]}</h3><ul>${groups[k].map(({ item, b, idx }) =>
+    `<section class="sheet group tag t-${k}"><h3>${BUCKET[k]}</h3><ul>${groups[k].map(({ item, b, idx }) =>
       `<li><span>${esc(item.name)}${b.answers?.[item.rule?.field] ? ` (${num(b.answers[item.rule.field])}${item.rule.unit})` : ""}</span>
-       <button class="link" data-del="${idx}">빼기</button></li>`).join("")}</ul></div>`).join("");
+       <button class="link" data-del="${idx}">빼기</button></li>`).join("")}</ul></section>`).join("");
 }
 
 // 입력칸 바로 아래에 오류를 보여주고 화면 낭독기와 연결
@@ -346,7 +381,7 @@ document.addEventListener("click", (e) => {
   if (d.act === "start") {
     const date = document.getElementById("d").value;
     if (!date) return showErr("d", "출국일을 선택해 주세요.");
-    state = { ...state, trip: { country: document.getElementById("c").value, departure_date: date } };
+    state = { ...state, trip: { country: document.querySelector('input[name="c"]:checked').value, departure_date: date } };
     save();
   }
   if (d.act === "search") Object.assign(view, { query: document.getElementById("q").value.trim(), photo: null });

@@ -163,7 +163,7 @@ const STAMP_DATA = {
 
   countries: {
     jp: {
-      name: "일본", flag: "🇯🇵", alert: SRC.jpAlert,
+      name: "일본", visaDays: 90, flag: "🇯🇵", alert: SRC.jpAlert,
       entry: { text: "한국 일반여권은 비자 없이 90일까지 머물 수 있어요. 일정이 이보다 길면 주한 일본대사관에 비자를 문의하세요.", source: SRC.visaFree },
       rules: [
         { items: ["meat_product"], level: "banned", message: "고기가 든 제품은 가공품·면세품이라도 일본에 가져갈 수 없어요. 고기 스프가 든 라면도 포함돼요. 위반 시 300만 엔 이하 벌금 또는 3년 이하 징역.", source: SRC.jpMeat },
@@ -176,7 +176,7 @@ const STAMP_DATA = {
       emergencySource: SRC.jpEmerg,
     },
     vn: {
-      name: "베트남", flag: "🇻🇳", alert: SRC.vnAlert,
+      name: "베트남", visaDays: 45, flag: "🇻🇳", alert: SRC.vnAlert,
       entry: { text: "한국 일반여권은 비자 없이 45일까지 머물 수 있어요. 일정이 이보다 길면 주한 베트남대사관에 비자를 문의하세요.", source: SRC.visaFree },
       rules: [
         { items: ["e_cigarette"], level: "banned", message: "베트남은 전자담배·가열담배의 수입·보관·사용을 금지해요. 갖고만 있어도 압수될 수 있고, 사용하면 300만~500만 동 벌금이에요.", source: SRC.vnVape },
@@ -186,7 +186,7 @@ const STAMP_DATA = {
       emergencySource: SRC.vnInfo,
     },
     cn: {
-      name: "중국", flag: "🇨🇳", alert: SRC.cnAlert,
+      name: "중국", visaDays: 30, flag: "🇨🇳", alert: SRC.cnAlert,
       entry: { text: "한국 일반여권은 2026-12-31까지 30일 이내 무비자 입국 가능 (관광·비즈니스·친지 방문·경유·교류). 귀국 항공권과 숙소 정보를 준비하세요.", source: SRC.cnVisa },
       rules: [
         { items: ["meat_product"], level: "banned", message: "생고기·익힌 고기와 그 제품은 중국에 가지고 들어갈 수 없어요.", source: SRC.cnFood },
