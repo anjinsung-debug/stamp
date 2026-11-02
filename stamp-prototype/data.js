@@ -25,6 +25,9 @@ const SRC = {
   vnPower: { title: "베트남 관광청 — Plan your trip (Power plugs)", url: "https://vietnam.travel/node/26" },
   cnPower: { title: "중국 민항국(CAAC) — Electricity", url: "http://www.caac.gov.cn/big5/www.caac.gov.cn/ZTZL/RDZT/YTHYWZ/CHRY/SHZN/Electricity/index.html" },
   avsec: { title: "항공보안365(국토교통부) — 기내 반입금지 물품 검색", url: "https://www.avsec365.or.kr/avsc/airsforbid/categoryCabin.do" },
+  icnDepart: { title: "인천공항 — 출국절차 (탑승위치와 게이트 번호)", url: "https://www.airport.kr/ap_ko/886/subview.do" },
+  icnConcourse: { title: "인천공항 — 제1 여객터미널 → 탑승동", url: "https://www.airport.kr/ap_ko/930/subview.do" },
+  icnMap: { title: "인천공항 공항지도", url: "https://www.airport.kr/ap/ko/map/mapInfo.do?SN=1380" },
   icnFaq: { title: "인천공항 — 제한물품 FAQ", url: "https://www.airport.kr/ap_ko/907/subview.do" },
   icnRestricted: { title: "인천공항 — 제한물품", url: "https://www.airport.kr/ap_ko/906/subview.do" },
   kacPhoto: { title: "한국공항공사 — 보안검색 금지품목(짐찍고)", url: "https://www.airport.co.kr/mKor/cms/frCon/index.do?MENU_ID=140" },
@@ -234,7 +237,8 @@ const STAMP_DATA = {
     { id: "airport", title: "출국 당일 공항", start: 0, summary: "공항에 일찍 도착해서 순서대로 진행해요.",
       todos: ["여권·탑승권 챙기기", "체크인하고 수하물 부치기", "보안검색 받기", "출국심사 받기", "탑승구로 이동하기"],
       mistakes: ["보조배터리를 위탁 가방에 넣어서 다시 꺼내기"],
-      faq: [["몇 시간 전에 가요?", "항공사 안내를 확인하세요. 국제선은 여유 있게 도착하는 게 좋아요."]] },
+      faq: [],
+      info: "gate" },
     { id: "arrival", title: "도착 국가 입국", start: 0, during: true, summary: "입국심사를 받고 짐을 찾아 세관을 지나요.",
       todos: ["입국심사 받기", "수하물 찾기", "세관 통과하기"],
       mistakes: ["반입 금지 음식을 신고하지 않기"],
@@ -256,6 +260,18 @@ const STAMP_DATA = {
 
   // 짐 체크리스트 기본 항목. item이 있으면 그 물건의 판정으로 연결.
   // 나라별 항목은 countries의 입국 금지 규정·플러그 정보에서 자동으로 만듦 (app.js checklist)
+  // 인천공항 게이트 찾기 (출국절차 공식 안내 기준). 터미널은 항공사마다 다르고 공동운항편은 다를 수 있음
+  airport: {
+    name: "인천공항",
+    buildings: {
+      T1: { name: "제1여객터미널", gates: [1, 50], airlines: "제주항공·트리니티항공·이스타항공·에어프레미아·파라타항공, 기타 외국항공사" },
+      CA: { name: "탑승동", gates: [101, 132], from: "T1" },
+      T2: { name: "제2여객터미널", gates: [208, 290], airlines: "대한항공·아시아나항공·진에어·에어서울·에어부산·델타항공, 기타 외국항공사" },
+    },
+    sources: [SRC.icnDepart, SRC.icnConcourse],
+    map: SRC.icnMap,
+  },
+
   checklist: [
     { id: "passport", cat: "서류", text: "여권" },
     { id: "passport_copy", cat: "서류", text: "여권 사본·사진 (여권과 따로 보관)" },

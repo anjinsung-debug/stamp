@@ -164,19 +164,67 @@ function roadView() {
 // 여행경보 단계는 수시로 바뀌니 단계를 적지 않고 외교부 국가 페이지로 바로 연결
 const alertLink = (c) => `<a class="alert" href="${c.alert.url}" target="_blank" rel="noopener">${c.name} 여행경보 보기<span>외교부 해외안전여행 · 새 창</span></a>`;
 
-// 단계에 맞는 여행 국가 정보 (data.js steps[].info)
+// 인천공항 게이트 번호 → 건물 (출국절차 공식 안내의 게이트 번호 범위)
+const gateBuilding = (g) => Object.keys(D.airport.buildings).find((k) => g >= D.airport.buildings[k].gates[0] && g <= D.airport.buildings[k].gates[1]);
+
+// 건물 위치 관계 그림 (실제 도면 아님): 제2터미널 · 제1터미널 ─셔틀트레인─ 탑승동
+function gateMap(b) {
+  const B = D.airport.buildings;
+  const blk = (id, x) => {
+    const cls = id === b ? "on" : b === "CA" && id === "T1" ? "from" : "";
+    return `<g class="blk ${cls}"><path d="M${x} 58h72v40h-72z"/><path d="M${x} 58l12-12h72l-12 12z"/><path d="M${x + 72} 58l12-12v40l-12 12z"/>
+      <text x="${x + 42}" y="122">${B[id].name}</text></g>`;
+  };
+  const label = b === "CA" ? "제1여객터미널에서 셔틀트레인을 타고 탑승동으로 가는 그림" : `${B[b].name} 위치 그림`;
+  return `<svg class="gmap" viewBox="0 40 340 92" role="img" aria-label="${label}">${blk("T2", 0)}${blk("T1", 116)}${blk("CA", 256)}
+    <path class="rail ${b === "CA" ? "on" : ""}" d="M200 82h56"/><text class="rail-t" x="228" y="74">셔틀트레인</text></svg>`;
+}
+
+function gateSteps(b, g) {
+  const B = D.airport.buildings, dep = B[b].from || b;
+  const steps = [`${B[dep].name} 3층 출국장에 도착해요`, "체크인 카운터에서 탑승수속을 하고 짐을 부쳐요", "보안검색을 받아요",
+    "출국심사를 받아요. 면세구역에 들어가면 일반구역으로 돌아갈 수 없어요"];
+  if (b === "CA") steps.push("지하 1층에서 셔틀트레인을 타고 탑승동으로 가요. 5분마다 다니고, 한 번 타면 돌아올 수 없어요",
+    "탑승동에 내리면 에스컬레이터로 두 층 올라가 3층으로 가요");
+  steps.push(`${g}번 게이트에 탑승 30~40분 전까지 도착해요`);
+  return steps;
+}
+
+function gateView() {
+  const A = D.airport, g = state.gate, b = g && gateBuilding(g);
+  const result = b ? `<p class="gate-where" tabindex="-1"><b>${g}번 게이트</b>는 <b>${A.buildings[b].name}</b>에 있어요.</p>${gateMap(b)}
+    <p class="footnote" style="margin-top:0">실제 도면이 아니라 건물 위치 관계를 나타낸 그림이에요.</p>
+    <ol class="gate-steps">${gateSteps(b, g).map((x) => `<li>${x}</li>`).join("")}</ol>` : "";
+  return `<div class="info gate"><h3>인천공항 게이트 찾기</h3>
+    <label for="gate" style="margin-top:0">탑승권에 적힌 게이트 번호</label>
+    <div class="row"><input id="gate" type="number" min="1" inputmode="numeric" enterkeyhint="search" placeholder="예: 115" value="${g ?? ""}"><button data-act="gate" style="flex:none">찾기</button></div>
+    ${result}
+    <p class="footnote">터미널은 항공사마다 달라요. 제2여객터미널은 ${A.buildings.T2.airlines}, 제1여객터미널은 ${A.buildings.T1.airlines}. 공동운항편은 다를 수 있으니 전자항공권에서 꼭 확인하세요.</p>
+    <a class="alert map" href="${A.map.url}" target="_blank" rel="noopener">인천공항 공식 지도 보기<span>새 창</span></a></div>`;
+}
+
+// 단계에서 쓴 출처 모음 (단계 맨 아래 "출처 보기"에 한 번에 표시)
+function stepSources(s) {
+  const c = country();
+  const by = { gate: D.airport.sources, entry: [c.entry?.source], rules: c.rules.flatMap((r) => [].concat(r.source)), power: [c.info.source], calls: [c.emergencySource] };
+  const all = [...(by[s.info] || []), ...(s.links || [])].filter(Boolean);
+  return all.filter((x, i) => all.findIndex((y) => y.url === x.url) === i);
+}
+
+// 단계에 맞는 여행 국가 정보 (data.js steps[].info), 출처는 stepSources에서 따로 모음
 function stepInfo(s) {
+  if (s.info === "gate") return gateView();
   const c = country();
   const box = (title, body) => `<div class="info"><h3>${c.name} ${title}</h3>${body}</div>`;
   if (s.info === "entry") return box("입국 조건", c.entry
-    ? `<p>${esc(c.entry.text)}</p>${srcLink(c.entry.source)}`
+    ? `<p>${esc(c.entry.text)}</p>`
     : `<p>아직 공식 출처로 확인하지 못했어요. 외교부 해외안전여행에서 확인하세요.</p>`) + alertLink(c);
   if (s.info === "rules") return box("반입 주의 물건", c.rules.map((r) =>
-    `<div class="note lv-${r.level}"><b>${r.items.map((id) => esc(itemById(id).name)).join(", ")} · ${LEVEL[r.level]}</b>${r.message}</div>${[].concat(r.source).map(srcLink).join("")}`).join(""));
+    `<div class="note lv-${r.level}"><b>${r.items.map((id) => esc(itemById(id).name)).join(", ")} · ${LEVEL[r.level]}</b>${r.message}</div>`).join(""));
   if (s.info === "power") return box("전기·플러그", `<dl><dt>전압</dt><dd>${c.info.voltage || "공식 출처 확인 전"}</dd>
-    <dt>플러그</dt><dd>${c.info.plug || "공식 출처 확인 전"}</dd></dl>${srcLink(c.info.source)}`);
+    <dt>플러그</dt><dd>${c.info.plug || "공식 출처 확인 전"}</dd></dl>`);
   if (s.info === "calls") return box("긴급 번호", `<ul class="calls">${[...c.emergency, ...D.commonEmergency]
-    .map(([l, n]) => `<li><span>${esc(l)}</span><a href="tel:${n.replace(/[^\d+]/g, "")}">${n}</a></li>`).join("")}</ul>${srcLink(c.emergencySource)}`);
+    .map(([l, n]) => `<li><span>${esc(l)}</span><a href="tel:${n.replace(/[^\d+]/g, "")}">${n}</a></li>`).join("")}</ul>`);
   return "";
 }
 
@@ -184,6 +232,7 @@ function stepView() {
   const i = D.steps.findIndex((x) => x.id === view.step);
   const s = D.steps[i];
   const checked = state.steps_done?.[s.id] || [];
+  const srcs = stepSources(s);
   return `<div class="sheet"><div class="muted">${i + 1}단계</div>
       <h2 style="margin-top:4px">${s.title}</h2><p>${s.summary}</p>
       ${stepInfo(s)}
@@ -192,7 +241,7 @@ function stepView() {
       ${s.goItems ? `<p style="margin-top:12px"><button data-tab="items">물건 확인하기</button></p>` : ""}
       <h2 style="font-size:15px">자주 하는 실수</h2><ul>${s.mistakes.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
       ${s.faq.map(([q, a, link]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p>${link === "alert" ? alertLink(country()) : ""}</details>`).join("")}
-      ${(s.links || []).map(srcLink).join("")}</div>
+      ${srcs.length ? `<details class="sources"><summary>출처 보기 (${srcs.length})</summary>${srcs.map(srcLink).join("")}</details>` : ""}</div>
     <div class="pager">
       ${i > 0 ? `<button class="ghost" data-step="${D.steps[i - 1].id}"><small>이전 ${i}단계</small>${D.steps[i - 1].title}</button>` : "<span></span>"}
       ${i < D.steps.length - 1 ? `<button class="ghost next" data-step="${D.steps[i + 1].id}"><small>다음 ${i + 2}단계</small>${D.steps[i + 1].title}</button>` : ""}
@@ -385,6 +434,20 @@ document.addEventListener("click", (e) => {
     save();
   }
   if (d.act === "search") Object.assign(view, { query: document.getElementById("q").value.trim(), photo: null });
+  if (d.act === "gate") {
+    const typed = document.getElementById("gate").value, g = Number(typed);
+    if (!Number.isInteger(g) || !gateBuilding(g)) {
+      delete state.gate; // 예전 결과가 오류 문구 아래 남지 않게, 입력한 숫자는 그대로 둠
+      save();
+      render();
+      document.getElementById("gate").value = typed;
+      return showErr("gate", "1~50, 101~132, 208~290번 중에서 입력해 주세요.");
+    }
+    state.gate = g;
+    save();
+    render();
+    return document.querySelector(".gate-where")?.focus(); // 화면 낭독기가 결과부터 읽게
+  }
   if (d.act === "answer") {
     const v = parseFloat(document.getElementById("v").value);
     if (!(v > 0)) return showErr("v", "0보다 큰 숫자로 입력해 주세요.");
@@ -435,6 +498,7 @@ document.addEventListener("change", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.id === "q") { Object.assign(view, { query: e.target.value.trim(), photo: null }); render(); }
+  if (e.key === "Enter" && e.target.id === "gate") document.querySelector('[data-act="gate"]').click();
   const menu = document.querySelector(".menu[open]");
   if (e.key === "Escape" && menu) { menu.open = false; menu.querySelector("summary").focus(); }
 });
