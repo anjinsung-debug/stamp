@@ -255,8 +255,11 @@
   .stampfx .ico { width: 40px; height: 40px; opacity: 1; stroke-width: 1.8; }
   .stampfx small { display: block; font-size: 14px; letter-spacing: 0; font-weight: 500; }
   @keyframes slam { from { transform: rotate(-10deg) scale(2.4); opacity: 0; } to { transform: rotate(-10deg) scale(1); opacity: 1; } }
-  /* 화면 전환: 이전 화면은 빠르게 사라지고 새 화면은 살짝 올라오며 나타남. 머리글은 고정 */
+  /* 화면 전환: 이전 화면은 빠르게 사라지고 새 화면은 살짝 올라오며 나타남 */
+  /* 머리글(로고·메뉴)은 전환 효과 없이 바로 제자리에: 미끄러지거나 흐려지지 않게 */
   header { view-transition-name: header; }
+  ::view-transition-group(header), ::view-transition-new(header) { animation: none; }
+  ::view-transition-old(header) { display: none; }
   ::view-transition-old(root) { animation: vt-out 180ms var(--ease-out) both; }
   ::view-transition-new(root) { animation: vt-in 340ms var(--ease-out) both; }
   @keyframes vt-out { to { opacity: 0; } }
