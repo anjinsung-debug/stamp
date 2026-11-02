@@ -362,13 +362,17 @@ document.addEventListener("click", (e) => {
     save();
     Object.assign(view, { tab: "bag", item: null, photo: null });
   }
-  render();
-  // 화면이 바뀌면 포커스를 본문 처음으로 옮겨 키보드·화면 낭독기 사용자가 길을 잃지 않게 함
-  if (d.tab || d.step || d.item || d.act === "back" || d.act === "add" || d.act === "start" || d.act === "reset") {
-    app.focus();
-    window.scrollTo(0, 0);
-  }
+  const navigated = d.tab || d.step || d.item || d.act === "back" || d.act === "add" || d.act === "start" || d.act === "reset";
+  if (!navigated) return render();
+  // 화면이 바뀌면 새 화면을 부드럽게 넘기고, 포커스를 본문 처음으로 옮겨 키보드·화면 낭독기 사용자가 길을 잃지 않게 함
+  swap(() => { render(); app.focus(); window.scrollTo(0, 0); });
 });
+
+// View Transitions를 지원하는 브라우저에서만 화면 전환 효과, 아니면 바로 바꿈 (움직임은 index.html CSS)
+function swap(update) {
+  if (!document.startViewTransition) return update();
+  document.startViewTransition(update);
+}
 
 document.addEventListener("change", (e) => {
   if (e.target.id === "photo") return e.target.files[0] && identifyPhoto(e.target.files[0]);

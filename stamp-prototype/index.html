@@ -12,6 +12,7 @@
 <style>
   :root {
     --cover: #1B2A4A; --gold: #C2A25A; --page: #E9F0EC; --paper: #F8FBF9;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1); /* 움직임 공통 곡선: 빠르게 시작해 부드럽게 멈춤 */
     --ink: #22303F; --muted: #5E6B78; --line: #C3D2CB;
     --violet: #5B3FA8; --green: #2E7D4F; --red: #C0323A; --amber: #9A5B12; --blue: #2D5B9A;
   }
@@ -45,8 +46,8 @@
   p { margin: 0 0 10px; }
   .muted { color: var(--muted); font-size: 13px; }
 
-  button { font: inherit; border: 0; border-radius: 6px; padding: 11px 16px; min-height: 44px; background: var(--cover); color: #fff; cursor: pointer; transition: scale 150ms ease-out, border-color 150ms ease-out; }
-  button:active:not(:disabled) { scale: .96; }
+  button { font: inherit; border: 0; border-radius: 6px; padding: 11px 16px; min-height: 44px; background: var(--cover); color: #fff; cursor: pointer; transition: scale 120ms var(--ease-out), border-color 150ms ease; }
+  button:active:not(:disabled) { scale: .97; }
   button.ghost { background: transparent; color: var(--cover); border: 1px solid var(--line); padding: 8px 12px; }
   button.link { background: none; color: var(--blue); padding: 0 4px; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; }
   button:disabled { opacity: .55; cursor: not-allowed; }
@@ -138,7 +139,9 @@
   /* 물건 판정 */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .chips button { background: #fff; color: var(--cover); border: 1px solid var(--line); padding: 10px 14px; font-size: 14px; }
-  .verdict { display: inline-block; margin: 6px 0 12px; padding: 8px 16px; border: 4px double currentColor; border-radius: 8px; font-weight: 700; font-size: 18px; transform: rotate(-2deg); }
+  .verdict { display: inline-block; margin: 6px 0 12px; padding: 8px 16px; border: 4px double currentColor; border-radius: 8px; font-weight: 700; font-size: 18px; transform: rotate(-2deg); transition: opacity 240ms var(--ease-out), scale 240ms var(--ease-out); }
+  /* 판정 도장이 살짝 크게 나타났다가 쿵 찍히듯 자리잡음 */
+  @starting-style { .verdict { opacity: 0; scale: 1.08; } }
   .s-both { color: var(--green); } .s-carry_on_only { color: var(--violet); } .s-checked_only { color: var(--amber); } .s-prohibited { color: var(--red); } .s-null { color: var(--muted); }
   .verdict small { display: block; font-size: 13px; font-weight: 500; }
   .banner { background: var(--red); color: #fff; padding: 10px 14px; border-radius: 4px; font-weight: 700; margin-bottom: 12px; }
@@ -168,7 +171,9 @@
   .menu summary { list-style: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 6px; background: var(--cover); color: var(--gold); cursor: pointer; }
   .menu summary::-webkit-details-marker { display: none; }
   .menu summary svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  .menu nav { position: absolute; top: 52px; left: 0; z-index: 10; min-width: 200px; display: flex; flex-direction: column; padding: 6px; background: var(--cover); border-radius: 6px; box-shadow: 0 8px 24px rgb(27 42 74 / .25); }
+  .menu nav { position: absolute; top: 52px; left: 0; z-index: 10; min-width: 200px; display: flex; flex-direction: column; padding: 6px; background: var(--cover); border-radius: 6px; box-shadow: 0 8px 24px rgb(27 42 74 / .25); transform-origin: top left; transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); }
+  /* 메뉴는 왼쪽 위 버튼에서 펼쳐짐 */
+  @starting-style { .menu[open] nav { opacity: 0; transform: translateY(-4px) scale(.97); } }
   .menu nav button { background: none; color: #d6deea; text-align: left; border-radius: 4px; }
   .menu nav button.on { color: var(--gold); font-weight: 700; box-shadow: inset 3px 0 0 var(--gold); }
   .menu nav .reset { margin-top: 6px; border-top: 1px solid rgb(255 255 255 / .15); border-radius: 0; color: #9aa7bd; font-size: 14px; }
@@ -199,7 +204,19 @@
   .stampfx .ico { width: 40px; height: 40px; opacity: 1; stroke-width: 1.8; }
   .stampfx small { display: block; font-size: 14px; letter-spacing: 0; font-weight: 500; }
   @keyframes slam { from { transform: rotate(-10deg) scale(2.4); opacity: 0; } to { transform: rotate(-10deg) scale(1); opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) { .stampfx div { animation: none; } }
+  /* 화면 전환: 이전 화면은 빠르게 사라지고 새 화면은 살짝 올라오며 나타남. 머리글은 고정 */
+  header { view-transition-name: header; }
+  ::view-transition-old(root) { animation: vt-out 120ms var(--ease-out) both; }
+  ::view-transition-new(root) { animation: vt-in 220ms var(--ease-out) both; }
+  @keyframes vt-out { to { opacity: 0; } }
+  @keyframes vt-in { from { opacity: 0; transform: translateY(8px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .stampfx div { animation: none; }
+    ::view-transition-new(root) { animation: vt-fade 160ms ease both; } /* 움직임 없이 흐려졌다 나타나기만 */
+    .verdict, .menu nav { transition: opacity 160ms ease; }
+    @starting-style { .verdict { scale: 1; } .menu[open] nav { transform: none; } }
+  }
+  @keyframes vt-fade { from { opacity: 0; } }
 
   /* PC: 상단 메뉴 + 2단 */
   @media (min-width: 900px) {
