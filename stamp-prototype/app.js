@@ -92,7 +92,8 @@ function search(q) {
 }
 
 // ---------- 화면 ----------
-const mark = `<h1 class="mark">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></h1>`;
+// 로고를 누르면 여권(첫 화면)으로
+const mark = `<h1 class="mark"><button class="home" data-tab="road" aria-label="STAMP, 여권으로 가기">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></button></h1>`;
 
 function render() {
   if (!state.trip) return renderSetup();
@@ -252,15 +253,15 @@ function stepView() {
       <h2 style="margin-top:4px">${s.title}</h2><p>${s.summary}</p>
       ${stepInfo(s)}
       <ul class="todos">${s.todos.map((t, j) => `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}>${esc(t)}</label></li>`).join("")}</ul>
-      <div class="muted">모두 체크하면 도장이 찍혀요.</div>
       ${s.goItems ? `<p style="margin-top:12px"><button data-tab="items">물건 확인하기</button></p>` : ""}
       <h2 style="font-size:15px">자주 하는 실수</h2><ul>${s.mistakes.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
       ${s.faq.map(([q, a, link]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p>${link === "alert" ? alertLink(country()) : ""}</details>`).join("")}
-      ${srcs.length ? `<details class="sources"><summary>출처 보기 (${srcs.length})</summary>${srcs.map(srcLink).join("")}</details>` : ""}</div>
+</div>
     <div class="pager">
       ${i > 0 ? `<button class="ghost" data-step="${D.steps[i - 1].id}"><small>이전 ${i}단계</small>${D.steps[i - 1].title}</button>` : "<span></span>"}
       ${i < D.steps.length - 1 ? `<button class="ghost next" data-step="${D.steps[i + 1].id}"><small>다음 ${i + 2}단계</small>${D.steps[i + 1].title}</button>` : ""}
-    </div>`;
+    </div>
+    ${srcs.length ? `<footer class="page-foot"><details class="sources"><summary>출처 보기 (${srcs.length})</summary>${srcs.map(srcLink).join("")}</details></footer>` : ""}`;
 }
 
 function itemsView() {
