@@ -28,6 +28,16 @@ const SRC = {
   icnDepart: { title: "인천공항 — 출국절차 (탑승위치와 게이트 번호)", url: "https://www.airport.kr/ap_ko/886/subview.do" },
   icnConcourse: { title: "인천공항 — 제1 여객터미널 → 탑승동", url: "https://www.airport.kr/ap_ko/930/subview.do" },
   icnMap: { title: "인천공항 공항지도", url: "https://www.airport.kr/ap/ko/map/mapInfo.do?SN=1380" },
+  gmpSim: { title: "한국공항공사 김포공항 — 국제선 출발시뮬레이션", url: "https://www.airport.co.kr/gimpo/cms/frCon/index.do?MENU_ID=1100&CONTENTS_NO=1" },
+  gmpBoard: { title: "김포공항 실시간 출발/도착 안내", url: "https://www.airport.co.kr/gimpo/cms/frCon/index.do?MENU_ID=1010" },
+  pusSim: { title: "한국공항공사 김해공항 — 국제선 출발시뮬레이션", url: "https://www.airport.co.kr/gimhae/cms/frCon/index.do?MENU_ID=130&CONTENTS_NO=2" },
+  pusBoard: { title: "김해공항 실시간 출발/도착 안내", url: "https://www.airport.co.kr/gimhae/cms/frCon/index.do?MENU_ID=110" },
+  cjuSim: { title: "한국공항공사 제주공항 — 국제선 출발시뮬레이션", url: "https://www.airport.co.kr/jeju/cms/frCon/index.do?MENU_ID=50&CONTENTS_NO=1" },
+  cjuBoard: { title: "제주공항 실시간 출발/도착 안내", url: "https://www.airport.co.kr/jeju/cms/frCon/index.do?MENU_ID=30" },
+  cjjSim: { title: "한국공항공사 청주공항 — 국제선 출발시뮬레이션", url: "https://www.airport.co.kr/cheongju/cms/frCon/index.do?MENU_ID=120&CONTENTS_NO=1" },
+  cjjBoard: { title: "청주공항 실시간 출발/도착 안내", url: "https://www.airport.co.kr/cheongju/cms/frCon/index.do?MENU_ID=100" },
+  taeSim: { title: "한국공항공사 대구공항 — 국제선 출발시뮬레이션", url: "https://www.airport.co.kr/daegu/cms/frCon/index.do?MENU_ID=120&CONTENTS_NO=2" },
+  taeBoard: { title: "대구공항 실시간 출발/도착 안내", url: "https://www.airport.co.kr/daegu/cms/frCon/index.do?MENU_ID=100" },
   icnFaq: { title: "인천공항 — 제한물품 FAQ", url: "https://www.airport.kr/ap_ko/907/subview.do" },
   icnRestricted: { title: "인천공항 — 제한물품", url: "https://www.airport.kr/ap_ko/906/subview.do" },
   kacPhoto: { title: "한국공항공사 — 보안검색 금지품목(짐찍고)", url: "https://www.airport.co.kr/mKor/cms/frCon/index.do?MENU_ID=140" },
@@ -260,8 +270,10 @@ const STAMP_DATA = {
 
   // 짐 체크리스트 기본 항목. item이 있으면 그 물건의 판정으로 연결.
   // 나라별 항목은 countries의 입국 금지 규정·플러그 정보에서 자동으로 만듦 (app.js checklist)
-  // 인천공항 게이트 찾기 (출국절차 공식 안내 기준). 터미널은 항공사마다 다르고 공동운항편은 다를 수 있음
-  airport: {
+  // 7단계 출발 공항. 인천은 게이트 번호로 건물 찾기(출국절차 공식 안내 기준, 터미널은 항공사마다 다르고 공동운항편은 다를 수 있음)
+  // 한국공항공사 공항은 탑승구 번호 범위를 공개하지 않아 국제선 출발 순서 + 실시간 출발 안내 링크만
+  airports: {
+   icn: {
     name: "인천공항",
     buildings: {
       T1: { name: "제1여객터미널", gates: [1, 50], airlines: "제주항공·트리니티항공·이스타항공·에어프레미아·파라타항공, 기타 외국항공사" },
@@ -270,7 +282,17 @@ const STAMP_DATA = {
     },
     sources: [SRC.icnDepart, SRC.icnConcourse],
     map: SRC.icnMap,
+   },
+   gmp: { name: "김포공항", sources: [SRC.gmpSim], board: SRC.gmpBoard },
+   pus: { name: "김해공항", sources: [SRC.pusSim], board: SRC.pusBoard },
+   cju: { name: "제주공항", sources: [SRC.cjuSim], board: SRC.cjuBoard },
+   cjj: { name: "청주공항", sources: [SRC.cjjSim], board: SRC.cjjBoard },
+   tae: { name: "대구공항", sources: [SRC.taeSim], board: SRC.taeBoard },
   },
+  // 한국공항공사 국제선 출발시뮬레이션의 공통 순서 (김포·김해·제주·청주·대구 모두 같음)
+  kacSteps: ["공항에 도착해요", "항공사 체크인 카운터에서 탑승수속을 하고 짐을 부쳐요", "검역이 필요하면 검역을 받아요",
+    "세관에 신고할 물건이 있으면 신고해요", "보안검색을 받아요", "출국심사에서 여권과 항공권을 보여 줘요",
+    "격리대합실에서 기다려요. 면세점도 여기 있어요", "탑승권에 적힌 탑승구에서 비행기를 타요"],
 
   checklist: [
     { id: "passport", cat: "서류", text: "여권" },

@@ -165,11 +165,11 @@ function roadView() {
 const alertLink = (c) => `<a class="alert" href="${c.alert.url}" target="_blank" rel="noopener">${c.name} 여행경보 보기<span>외교부 해외안전여행 · 새 창</span></a>`;
 
 // 인천공항 게이트 번호 → 건물 (출국절차 공식 안내의 게이트 번호 범위)
-const gateBuilding = (g) => Object.keys(D.airport.buildings).find((k) => g >= D.airport.buildings[k].gates[0] && g <= D.airport.buildings[k].gates[1]);
+const gateBuilding = (g) => Object.keys(D.airports.icn.buildings).find((k) => g >= D.airports.icn.buildings[k].gates[0] && g <= D.airports.icn.buildings[k].gates[1]);
 
 // 건물 위치 관계 그림 (실제 도면 아님): 제2터미널 · 제1터미널 ─셔틀트레인─ 탑승동
 function gateMap(b) {
-  const B = D.airport.buildings;
+  const B = D.airports.icn.buildings;
   const blk = (id, x) => {
     const cls = id === b ? "on" : b === "CA" && id === "T1" ? "from" : "";
     return `<g class="blk ${cls}"><path d="M${x} 58h72v40h-72z"/><path d="M${x} 58l12-12h72l-12 12z"/><path d="M${x + 72} 58l12-12v40l-12 12z"/>
@@ -181,7 +181,7 @@ function gateMap(b) {
 }
 
 function gateSteps(b, g) {
-  const B = D.airport.buildings, dep = B[b].from || b;
+  const B = D.airports.icn.buildings, dep = B[b].from || b;
   const steps = [`${B[dep].name} 3층 출국장에 도착해요`, "체크인 카운터에서 탑승수속을 하고 짐을 부쳐요", "보안검색을 받아요",
     "출국심사를 받아요. 면세구역에 들어가면 일반구역으로 돌아갈 수 없어요"];
   if (b === "CA") steps.push("지하 1층에서 셔틀트레인을 타고 탑승동으로 가요. 5분마다 다니고, 한 번 타면 돌아올 수 없어요",
@@ -190,30 +190,45 @@ function gateSteps(b, g) {
   return steps;
 }
 
+// 7단계 출발 공항 고르기: 인천은 게이트 찾기, 한국공항공사 공항은 국제선 출발 순서
+const airportId = () => (D.airports[state.airport] ? state.airport : "icn");
+function airportView() {
+  const id = airportId(), a = D.airports[id];
+  const opts = Object.entries(D.airports).map(([k, x]) => `<option value="${k}" ${k === id ? "selected" : ""}>${x.name}</option>`).join("");
+  return `<div class="info gate"><h3>출발 공항</h3><label for="ap" style="margin-top:0">어느 공항에서 출발하나요?</label><select id="ap">${opts}</select>
+    ${a.buildings ? gateView() : kacView(a)}</div>`;
+}
+
+function kacView(a) {
+  return `<p class="gate-where">${a.name} 국제선 출국 순서예요.</p>
+    <ol class="gate-steps">${D.kacSteps.map((x) => `<li>${x}</li>`).join("")}</ol>
+    <p class="footnote">탑승구 번호는 탑승권과 공항 전광판, 아래 실시간 출발 안내에서 확인하세요.</p>
+    <a class="alert map" href="${a.board.url}" target="_blank" rel="noopener">${a.name} 실시간 출발 안내<span>새 창</span></a>`;
+}
+
 function gateView() {
-  const A = D.airport, g = state.gate, b = g && gateBuilding(g);
+  const A = D.airports.icn, g = state.gate, b = g && gateBuilding(g);
   const result = b ? `<p class="gate-where" tabindex="-1"><b>${g}번 게이트</b>는 <b>${A.buildings[b].name}</b>에 있어요.</p>${gateMap(b)}
     <p class="footnote" style="margin-top:0">실제 도면이 아니라 건물 위치 관계를 나타낸 그림이에요.</p>
     <ol class="gate-steps">${gateSteps(b, g).map((x) => `<li>${x}</li>`).join("")}</ol>` : "";
-  return `<div class="info gate"><h3>인천공항 게이트 찾기</h3>
-    <label for="gate" style="margin-top:0">탑승권에 적힌 게이트 번호</label>
+  return `<label for="gate">인천공항 게이트 찾기: 탑승권에 적힌 게이트 번호</label>
     <div class="row"><input id="gate" type="number" min="1" inputmode="numeric" enterkeyhint="search" placeholder="예: 115" value="${g ?? ""}"><button data-act="gate" style="flex:none">찾기</button></div>
     ${result}
     <p class="footnote">터미널은 항공사마다 달라요. 제2여객터미널은 ${A.buildings.T2.airlines}, 제1여객터미널은 ${A.buildings.T1.airlines}. 공동운항편은 다를 수 있으니 전자항공권에서 꼭 확인하세요.</p>
-    <a class="alert map" href="${A.map.url}" target="_blank" rel="noopener">인천공항 공식 지도 보기<span>새 창</span></a></div>`;
+    <a class="alert map" href="${A.map.url}" target="_blank" rel="noopener">인천공항 공식 지도 보기<span>새 창</span></a>`;
 }
 
 // 단계에서 쓴 출처 모음 (단계 맨 아래 "출처 보기"에 한 번에 표시)
 function stepSources(s) {
   const c = country();
-  const by = { gate: D.airport.sources, entry: [c.entry?.source], rules: c.rules.flatMap((r) => [].concat(r.source)), power: [c.info.source], calls: [c.emergencySource] };
+  const by = { gate: D.airports[airportId()].sources, entry: [c.entry?.source], rules: c.rules.flatMap((r) => [].concat(r.source)), power: [c.info.source], calls: [c.emergencySource] };
   const all = [...(by[s.info] || []), ...(s.links || [])].filter(Boolean);
   return all.filter((x, i) => all.findIndex((y) => y.url === x.url) === i);
 }
 
 // 단계에 맞는 여행 국가 정보 (data.js steps[].info), 출처는 stepSources에서 따로 모음
 function stepInfo(s) {
-  if (s.info === "gate") return gateView();
+  if (s.info === "gate") return airportView();
   const c = country();
   const box = (title, body) => `<div class="info"><h3>${c.name} ${title}</h3>${body}</div>`;
   if (s.info === "entry") return box("입국 조건", c.entry
@@ -474,6 +489,12 @@ function swap(update) {
 
 document.addEventListener("change", (e) => {
   if (e.target.id === "photo") return e.target.files[0] && identifyPhoto(e.target.files[0]);
+  if (e.target.id === "ap") {
+    state.airport = e.target.value;
+    save();
+    render();
+    return document.getElementById("ap").focus(); // 다시 그려도 포커스 유지
+  }
   if (e.target.dataset.check) {
     const done = new Set(state.checklist_done || []);
     e.target.checked ? done.add(e.target.dataset.check) : done.delete(e.target.dataset.check);
