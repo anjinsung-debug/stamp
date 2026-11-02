@@ -154,8 +154,7 @@ function roadView() {
     </div>
     <section class="visa" aria-labelledby="col-title">
       <div class="col-head">
-        <div><h2 id="col-title">도장 컬렉션</h2>
-          <p class="muted">${done === D.steps.length ? "도장을 모두 모았어요. 준비 끝이에요." : `준비 단계를 끝낼 때마다 도장이 찍혀요. ${D.steps.length - done}개 남았어요.`}</p></div>
+        <h2 id="col-title">도장 컬렉션</h2>
         <div class="count" aria-label="도장 ${done}개 중 ${D.steps.length}개"><b>${two(done)}</b><span>/ ${D.steps.length}</span></div>
       </div>
       <div class="slots">${slots}</div>
