@@ -167,7 +167,7 @@
 
   /* 왼쪽 위 메뉴 */
   header { justify-content: flex-start; gap: 12px; }
-  .menu { position: relative; }
+  .menu { position: relative; border: 0; padding: 0; } /* FAQ용 details 구분선이 메뉴에 붙지 않게 */
   .menu summary { list-style: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 6px; background: var(--cover); color: var(--gold); cursor: pointer; }
   .menu summary::-webkit-details-marker { display: none; }
   .menu summary svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
@@ -209,7 +209,7 @@
     .wrap { max-width: 1080px; padding: 28px 28px 48px; }
     .visa { padding: 22px; }
     .slots { grid-template-columns: repeat(4, 1fr); gap: 18px; }
-    .narrow { max-width: 720px; margin: 0 auto; }
+    .narrow, header { max-width: 720px; margin-left: auto; margin-right: auto; } /* 로고·메뉴를 본문과 같은 폭에 맞춤 */
   }
 </style>
 </head>
