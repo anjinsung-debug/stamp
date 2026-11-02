@@ -206,13 +206,13 @@
   @keyframes slam { from { transform: rotate(-10deg) scale(2.4); opacity: 0; } to { transform: rotate(-10deg) scale(1); opacity: 1; } }
   /* 화면 전환: 이전 화면은 빠르게 사라지고 새 화면은 살짝 올라오며 나타남. 머리글은 고정 */
   header { view-transition-name: header; }
-  ::view-transition-old(root) { animation: vt-out 120ms var(--ease-out) both; }
-  ::view-transition-new(root) { animation: vt-in 220ms var(--ease-out) both; }
+  ::view-transition-old(root) { animation: vt-out 180ms var(--ease-out) both; }
+  ::view-transition-new(root) { animation: vt-in 340ms var(--ease-out) both; }
   @keyframes vt-out { to { opacity: 0; } }
-  @keyframes vt-in { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes vt-in { from { opacity: 0; transform: translateY(12px); } }
   @media (prefers-reduced-motion: reduce) {
     .stampfx div { animation: none; }
-    ::view-transition-new(root) { animation: vt-fade 160ms ease both; } /* 움직임 없이 흐려졌다 나타나기만 */
+    ::view-transition-new(root) { animation: vt-fade 240ms ease both; } /* 움직임 없이 흐려졌다 나타나기만 */
     .verdict, .menu nav { transition: opacity 160ms ease; }
     @starting-style { .verdict { scale: 1; } .menu[open] nav { transform: none; } }
   }
