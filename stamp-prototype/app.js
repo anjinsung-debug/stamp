@@ -166,12 +166,7 @@ function stepView() {
   return `<div class="sheet"><div class="muted">${i + 1}단계</div>
       <h2 style="margin-top:4px">${s.title}</h2><p>${s.summary}</p>
       ${stepInfo(s)}
-      <ul class="todos">${s.todos.map((t, j) => {
-        const [text, unit] = [].concat(t);
-        const v = state.values?.[`${s.id}.${j}`];
-        return `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}>${esc(text)}</label>${unit
-          ? `<span class="val"><input type="number" min="0" inputmode="numeric" enterkeyhint="done" data-val="${j}" value="${v ?? ""}" aria-label="${esc(text)} (${unit})"><span>${unit}</span></span>` : ""}</li>`;
-      }).join("")}</ul>
+      <ul class="todos">${s.todos.map((t, j) => `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}>${esc(t)}</label></li>`).join("")}</ul>
       <div class="muted">모두 체크하면 도장이 찍혀요.</div>
       ${s.goItems ? `<p style="margin-top:12px"><button data-tab="items">물건 확인하기</button></p>` : ""}
       <h2 style="font-size:15px">자주 하는 실수</h2><ul>${s.mistakes.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
@@ -385,21 +380,11 @@ document.addEventListener("change", (e) => {
     render(); // 개수 다시 그리기, 키보드 사용자를 위해 같은 칸에 포커스 유지
     return document.querySelector(`[data-check="${e.target.dataset.check}"]`)?.focus();
   }
-  const { todo, val } = e.target.dataset;
-  if (todo == null && val == null) return;
+  if (e.target.dataset.todo == null) return;
   const s = D.steps.find((x) => x.id === view.step);
   const done = new Set(state.steps_done?.[s.id] || []);
-  const i = +(todo ?? val);
-  let on = e.target.checked;
-  // 숫자를 입력하면 그 항목을 체크, 지우면 체크 해제
-  if (val != null) {
-    const v = parseFloat(e.target.value);
-    on = v > 0;
-    state.values ||= {};
-    if (on) state.values[`${s.id}.${i}`] = v; else { delete state.values[`${s.id}.${i}`]; e.target.value = ""; }
-    document.querySelector(`[data-todo="${i}"]`).checked = on;
-  }
-  on ? done.add(i) : done.delete(i);
+  const i = +e.target.dataset.todo;
+  e.target.checked ? done.add(i) : done.delete(i);
   const before = stepDone(s);
   (state.steps_done ||= {})[s.id] = [...done];
   if (!before && stepDone(s)) {
