@@ -92,32 +92,29 @@ function search(q) {
 }
 
 // ---------- 화면 ----------
-// 로고를 누르면 여권(첫 화면)으로
-const mark = `<h1 class="mark"><button class="home" data-tab="road" aria-label="STAMP, 여권으로 가기">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></button></h1>`;
+// 로고를 누르면 지금 할 일(첫 화면)로
+const mark = `<h1 class="mark"><button class="home" data-tab="road" aria-label="STAMP, 지금 할 일로 가기">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></button></h1>`;
 
 function render() {
   if (!state.trip) return renderSetup();
-  const tabs = [["road", "여권"], ["items", "물건 확인"], ["bag", "내 짐"]]
+  const tabs = [["road", "지금 할 일"], ["stamps", "여행 로드맵"], ["items", "물건 확인"], ["bag", "내 짐"]]
     .map(([k, t]) => `<button class="${view.tab === k ? "on" : ""}" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${t}</button>`).join("");
   // 왼쪽 위 메뉴: 화면이 다시 그려지면 자연스럽게 닫힘
   const head = `<header><details class="menu"><summary aria-label="메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
     <nav aria-label="주 메뉴">${tabs}<button class="reset" data-act="reset">여행지 바꾸기</button></nav></details>${mark}</header>`;
-  const body = view.tab === "road" ? (view.step ? stepView() : roadView())
+  const body = view.tab === "road" ? roadView() : view.tab === "stamps" ? stampsView()
     : view.tab === "items" ? itemsView() : bagView();
   app.innerHTML = head + `<div class="narrow">${body}</div>`;
 }
 
 function renderSetup() {
-  // 나라는 큰 버튼 3개 (무비자 기간은 외교부 사증면제 자료 기준)
-  const picks = Object.entries(D.countries).map(([k, c], i) =>
-    `<label class="pick"><input type="radio" name="c" value="${k}" ${i === 0 ? "checked" : ""}><span><b>${c.name}</b><small>무비자 ${c.visaDays}일</small></span></label>`).join("");
+  const opts = Object.entries(D.countries).map(([k, c]) => `<option value="${k}">${c.name}</option>`).join("");
   app.innerHTML = `<div class="narrow" style="max-width:440px;margin:24px auto 0">
     <div class="cover"><div class="emblem">STAMP</div><h1>첫 여권</h1><p>처음이면 다들 헷갈려요. 하나씩 같이 준비해요.</p></div>
     <div class="sheet">
-      <fieldset class="picks"><legend>어디로 가나요?</legend>${picks}</fieldset>
+      <label for="c">어디로 가나요?</label><select id="c">${opts}</select>
       <label for="d">언제 출발하나요?</label><input id="d" type="date" required>
       <p style="margin-top:16px"><button class="full" data-act="start">여권 만들기</button></p>
-      <div class="footnote">이미 여행 중이면 출발한 날짜를 넣으세요. 로그인 없이 이 기기에만 저장돼요.</div>
     </div></div>`;
 }
 
@@ -128,14 +125,38 @@ function mrz(days) {
   return `P<KOR<STAMP<<${state.trip.country.toUpperCase()}<<${d}<<D${Math.max(days, 0)}`.padEnd(44, "<");
 }
 
-function roadView() {
+// 지금 할 단계: 여행 중(출국일이 지남)에는 출국 전 단계 대신 현지에서 할 단계 중에서
+function nowStep() {
   const days = dday();
-  const done = D.steps.filter(stepDone).length;
-  // 여행 중(출국일이 지남)에는 출국 전 단계 대신 현지에서 할 단계를 "지금 할 일"로
   const pool = days < 0 ? D.steps.filter((s) => s.during) : D.steps;
-  const now = pool.find((s) => !stepDone(s) && days <= s.start) || pool.find((s) => !stepDone(s));
-  const c = country();
+  return pool.find((s) => !stepDone(s) && days <= s.start) || pool.find((s) => !stepDone(s));
+}
+// 여권 화면에 보여 줄 단계: 이전/다음·도장으로 고른 단계, 없으면 지금 할 단계
+const currentStepId = () => view.step || nowStep()?.id;
+
+// 여권 정보 면 (목적지, 출국일, D-day): 여행 로드맵 맨 위
+function datapage() {
+  const days = dday();
   const dlabel = days > 0 ? `D-${days}` : days === 0 ? "D-DAY" : `D+${-days}`;
+  return `<div class="datapage">
+      <div class="fields">
+        <div class="field"><small>목적지</small><b>${country().name}</b></div>
+        <div class="dday"><b>${dlabel}</b><small>${days >= 0 ? "출국까지" : "여행 중"}</small></div>
+        <div class="field"><small>출국일</small><b>${dot(state.trip.departure_date)}</b></div>
+      </div>
+      <div class="mrz" aria-hidden="true">${esc(mrz(days))}</div>
+    </div>`;
+}
+
+// 지금 할 일: 지금 진행할 단계
+function roadView() {
+  const id = currentStepId();
+  return `${id ? stepView(id) : `<div class="sheet"><h2 style="margin-top:0">모든 단계를 끝냈어요</h2><p>도장을 모두 모았어요. 즐거운 여행 되세요.</p><button data-tab="stamps">여행 로드맵 보기</button></div>`}`;
+}
+
+function stampsView() {
+  const done = D.steps.filter(stepDone).length;
+  const now = nowStep();
   const slots = D.steps.map((s, i) => {
     const isDone = stepDone(s);
     const style = isDone ? `style="--ink-c:${INKS[i % 4]};--tilt:${TILTS[i]}deg"` : "";
@@ -144,17 +165,10 @@ function roadView() {
       : `<span>${icon(s.id)}<span class="t">${s.title}</span>${s === now ? "지금 할 일" : s.start > 0 ? `D-${s.start}부터` : "출국 당일부터"}</span>`;
     return `<button class="slot shape-${i % 3} ${isDone ? "done" : ""} ${s === now ? "now" : ""}" data-step="${s.id}" ${style} aria-label="${i + 1}단계 ${s.title}${isDone ? " 완료" : ""}">${inner}</button>`;
   }).join("");
-  return `<div class="datapage">
-      <div class="fields">
-        <div class="field"><small>목적지</small><b>${c.name}</b></div>
-        <div class="dday"><b>${dlabel}</b><small>${days >= 0 ? "출국까지" : "여행 중"}</small></div>
-        <div class="field"><small>출국일</small><b>${dot(state.trip.departure_date)}</b></div>
-      </div>
-      <div class="mrz" aria-hidden="true">${esc(mrz(days))}</div>
-    </div>
+  return `${datapage()}
     <section class="visa" aria-labelledby="col-title">
       <div class="col-head">
-        <h2 id="col-title">도장 컬렉션</h2>
+        <h2 id="col-title">여행 로드맵</h2>
         <div class="count" aria-label="도장 ${done}개 중 ${D.steps.length}개"><b>${two(done)}</b><span>/ ${D.steps.length}</span></div>
       </div>
       <div class="slots">${slots}</div>
@@ -243,12 +257,12 @@ function stepInfo(s) {
   return "";
 }
 
-function stepView() {
-  const i = D.steps.findIndex((x) => x.id === view.step);
+function stepView(id) {
+  const i = D.steps.findIndex((x) => x.id === id);
   const s = D.steps[i];
   const checked = state.steps_done?.[s.id] || [];
   const srcs = stepSources(s);
-  return `<div class="sheet"><div class="muted">${i + 1}단계</div>
+  return `<div class="sheet"><div class="muted">${i + 1}단계${s === nowStep() ? ` <span class="now-tag">지금 할 일</span>` : ""}</div>
       <h2 style="margin-top:4px">${s.title}</h2><p>${s.summary}</p>
       ${stepInfo(s)}
       <ul class="todos">${s.todos.map((t, j) => `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}>${esc(t)}</label></li>`).join("")}</ul>
@@ -437,7 +451,7 @@ document.addEventListener("click", (e) => {
   const d = t.dataset;
   if (d.tab) Object.assign(view, { tab: d.tab, step: null, item: null, photo: null });
   if (d.act === "photo-clear") view.photo = null;
-  if (d.step) view.step = d.step;
+  if (d.step) Object.assign(view, { tab: "road", step: d.step });
   if (d.item) Object.assign(view, { item: d.item, answers: {} });
   if (d.del) { state.bag.splice(+d.del, 1); save(); }
   if (d.act === "back") Object.assign(view, { step: null, item: null });
@@ -445,7 +459,7 @@ document.addEventListener("click", (e) => {
   if (d.act === "start") {
     const date = document.getElementById("d").value;
     if (!date) return showErr("d", "출국일을 선택해 주세요.");
-    state = { ...state, trip: { country: document.querySelector('input[name="c"]:checked').value, departure_date: date } };
+    state = { ...state, trip: { country: document.getElementById("c").value, departure_date: date } };
     save();
   }
   if (d.act === "search") Object.assign(view, { query: document.getElementById("q").value.trim(), photo: null });
@@ -504,7 +518,7 @@ document.addEventListener("change", (e) => {
     return document.querySelector(`[data-check="${e.target.dataset.check}"]`)?.focus();
   }
   if (e.target.dataset.todo == null) return;
-  const s = D.steps.find((x) => x.id === view.step);
+  const s = D.steps.find((x) => x.id === currentStepId());
   const done = new Set(state.steps_done?.[s.id] || []);
   const i = +e.target.dataset.todo;
   e.target.checked ? done.add(i) : done.delete(i);
@@ -513,6 +527,13 @@ document.addEventListener("change", (e) => {
   if (!before && stepDone(s)) {
     (state.stamped ||= {})[s.id] = new Date().toISOString().slice(0, 10);
     stampFx(s);
+    // 도장 연출이 끝나면 다음에 할 단계로 넘어감 (그 사이 다른 화면으로 갔거나 체크를 풀었으면 그대로)
+    const shown = view.step;
+    setTimeout(() => {
+      if (view.tab !== "road" || view.step !== shown || !stepDone(s)) return;
+      view.step = null;
+      swap(() => { render(); app.focus(); window.scrollTo(0, 0); });
+    }, 1300);
   }
   save();
 });
