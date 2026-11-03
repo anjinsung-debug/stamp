@@ -243,7 +243,7 @@ const STAMP_DATA = {
       todos: ["물건 확인하기로 헷갈리는 물건 검사하기", "보조배터리는 기내 가방에 넣기", "액체류는 100ml 이하 용기·1L 지퍼백에 담기", "약은 기내 가방에 넣기"],
       mistakes: ["보조배터리를 위탁 가방에 넣기", "100ml 넘는 화장품을 기내 가방에 넣기"],
       faq: [["어떤 물건이 헷갈려요?", "'물건 확인' 탭에서 이름을 입력해 보세요."]],
-      links: [SRC.molitPowerBank, SRC.molitLiquid], goItems: true, info: "rules" },
+      links: [SRC.molitPowerBank, SRC.molitLiquid], goItems: true },
     { id: "airport", title: "출국 당일 공항", start: 0, summary: "공항에 일찍 도착해서 순서대로 진행해요.",
       todos: ["여권·탑승권 챙기기", "체크인하고 수하물 부치기", "보안검색 받기", "출국심사 받기", "탑승구로 이동하기"],
       mistakes: ["보조배터리를 위탁 가방에 넣어서 다시 꺼내기"],
@@ -252,8 +252,7 @@ const STAMP_DATA = {
     { id: "arrival", title: "도착 국가 입국", start: 0, during: true, summary: "입국심사를 받고 짐을 찾아 세관을 지나요.",
       todos: ["입국심사 받기", "수하물 찾기", "세관 통과하기"],
       mistakes: ["반입 금지 음식을 신고하지 않기"],
-      faq: [["입국심사에서 뭘 물어봐요?", "보통 방문 목적, 머무는 기간, 숙소를 물어봐요."]],
-      info: "rules" },
+      faq: [["입국심사에서 뭘 물어봐요?", "보통 방문 목적, 머무는 기간, 숙소를 물어봐요."]] },
     { id: "local", title: "현지 도착 후", start: 0, during: true, summary: "숙소까지 이동하고 연락 수단을 준비해요.",
       todos: ["공항에서 숙소 가는 방법 확인하기", "전기·플러그 확인하기"],
       mistakes: ["어댑터 없이 충전기만 챙기기"],
@@ -267,6 +266,16 @@ const STAMP_DATA = {
   ],
 
   fallbackLinks: [SRC.icnRestricted, SRC.kacPhoto],
+
+  // 물건 확인 목록 묶음. 사진 인식에서 물건을 확신하지 못하면 묶음이라도 골라 그 안에서 고르게 함
+  groups: [
+    { id: "battery", name: "배터리·전자기기", icon: "battery", items: ["power_bank", "spare_battery", "electronics", "e_cigarette", "hair_iron"] },
+    { id: "liquid", name: "액체·스프레이", icon: "drop", items: ["liquid_cosmetic", "lens_solution", "spray", "alcohol", "duty_free_liquid"] },
+    { id: "blade", name: "칼·가위·도구", icon: "blade", items: ["scissors", "knife", "multi_tool", "razor", "nail_clipper", "selfie_stick"] },
+    { id: "fire", name: "불", icon: "flame", items: ["lighter", "torch_lighter", "matches"] },
+    { id: "food", name: "음식", icon: "food", items: ["meat_product", "fresh_fruit", "dairy", "instant_food"] },
+    { id: "medicine", name: "약", icon: "pill", items: ["medicine", "liquid_medicine"] },
+  ],
 
   // 짐 체크리스트 기본 항목. item이 있으면 그 물건의 판정으로 연결.
   // 나라별 항목은 countries의 입국 금지 규정·플러그 정보에서 자동으로 만듦 (app.js checklist)
