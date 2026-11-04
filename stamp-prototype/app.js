@@ -42,7 +42,7 @@ const two = (n) => String(n).padStart(2, "0");
 const TILTS = [-8, 5, -3, 9, -6, 3, -10, 7, -4, 6];
 
 let state = load();
-let view = { tab: "road", step: null, item: null, query: "" };
+let view = { tab: "stamps", step: null, item: null, query: "" };
 
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
@@ -87,20 +87,26 @@ function search(q) {
 }
 
 // ---------- 화면 ----------
-// 로고를 누르면 지금 할 일(첫 화면)로
-const mark = `<h1 class="mark"><button class="home" data-tab="road" aria-label="STAMP, 지금 할 일로 가기">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></button></h1>`;
+// 로고를 누르면 여행 로드맵(메인 화면)으로
+const mark = `<h1 class="mark"><button class="home" data-tab="stamps" aria-label="STAMP, 여행 로드맵으로 가기">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></button></h1>`;
 
 function render() {
   if (!state.trip) return renderSetup();
-  const tabs = [["road", "지금 할 일"], ["stamps", "여행 로드맵"], ["items", "물건 확인"], ["bag", "내 짐"]]
+  const tabs = [["stamps", "여행 로드맵"], ["road", "지금 할 일"], ["items", "물건 확인"], ["bag", "내 짐"]]
     .map(([k, t]) => `<button class="${view.tab === k ? "on" : ""}" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${t}</button>`).join("");
   // 왼쪽 위 메뉴: 화면이 다시 그려지면 자연스럽게 닫힘
   const head = `<header><details class="menu"><summary aria-label="메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <nav aria-label="주 메뉴">${tabs}<button class="reset" data-act="reset">여행지 바꾸기</button></nav></details>${mark}</header>`;
-  const body = view.tab === "road" ? roadView() : view.tab === "stamps" ? stampsView()
+    <nav aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav></details>${mark}</header>`;
+  const body = view.tab === "reset" ? resetView() : view.tab === "road" ? roadView() : view.tab === "stamps" ? stampsView()
     : view.tab === "items" ? itemsView() : bagView();
   app.innerHTML = head + `<div class="narrow">${body}</div>`;
 }
+
+// 브라우저 확인 창(confirm)은 앱 안 브라우저에서 안 뜨는 경우가 있어 화면 안에서 물어봄
+const resetView = () => `<div class="sheet"><h2>여행지를 바꿀까요?</h2>
+  <p>지금까지 체크한 내용, 도장, 내 짐 목록이 모두 지워지고 처음부터 다시 시작해요.</p>
+  <p style="margin-top:16px"><button class="full" data-act="reset">지우고 여행지 바꾸기</button></p>
+  <p><button class="full ghost" data-tab="stamps">취소</button></p></div>`;
 
 function renderSetup() {
   const opts = Object.entries(D.countries).map(([k, c]) => `<option value="${k}">${c.name}</option>`).join("");
@@ -474,11 +480,15 @@ document.addEventListener("click", (e) => {
   if (d.item) Object.assign(view, { item: d.item, answers: {} });
   if (d.del) { state.bag.splice(+d.del, 1); save(); }
   if (d.act === "back") Object.assign(view, { step: null, item: null });
-  if (d.act === "reset") { delete state.trip; save(); }
+  if (d.act === "reset") {
+    state = {}; save();
+  }
   if (d.act === "start") {
     const date = document.getElementById("d").value;
     if (!date) return showErr("d", "출국일을 선택해 주세요.");
-    state = { ...state, trip: { country: document.getElementById("c").value, departure_date: date } };
+    // 새 여행은 빈 상태로 시작 (예전 여행의 체크·도장이 남지 않게)
+    state = { trip: { country: document.getElementById("c").value, departure_date: date } };
+    view = { tab: "stamps", step: null, item: null, query: "" };
     save();
   }
   if (d.act === "search") Object.assign(view, { query: document.getElementById("q").value.trim(), photo: null });
