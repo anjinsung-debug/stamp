@@ -92,7 +92,7 @@ const mark = `<h1 class="mark"><button class="home" data-tab="stamps" aria-label
 
 function render() {
   if (!state.trip) return renderSetup();
-  const tabs = [["stamps", "여행 로드맵"], ["road", "지금 할 일"], ["items", "물건 확인"], ["bag", "내 짐"]]
+  const tabs = [["stamps", "여행 로드맵"], ["road", "지금 할 일"], ["items", "물건 확인"], ["bag", "가방"]]
     .map(([k, t]) => `<button class="${view.tab === k ? "on" : ""}" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${t}</button>`).join("");
   // 왼쪽 위 메뉴: 화면이 다시 그려지면 자연스럽게 닫힘
   const head = `<header><details class="menu"><summary aria-label="메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
@@ -104,7 +104,7 @@ function render() {
 
 // 브라우저 확인 창(confirm)은 앱 안 브라우저에서 안 뜨는 경우가 있어 화면 안에서 물어봄
 const resetView = () => `<div class="sheet"><h2>여행지를 바꿀까요?</h2>
-  <p>지금까지 체크한 내용, 도장, 내 짐 목록이 모두 지워지고 처음부터 다시 시작해요.</p>
+  <p>지금까지 체크한 내용, 도장, 가방 목록이 모두 지워지고 처음부터 다시 시작해요.</p>
   <p style="margin-top:16px"><button class="full" data-act="reset">지우고 여행지 바꾸기</button></p>
   <p><button class="full ghost" data-tab="stamps">취소</button></p></div>`;
 
@@ -122,7 +122,8 @@ function renderSetup() {
 // 단계 할 일 + 나라별 할 일 (data.js countries[].todos), 글자만 있거나 { text, source }
 const stepTodos = (s) => [...s.todos, ...(country().todos?.[s.id] || [])].map((t) => typeof t === "string" ? { text: t } : t);
 function stepDone(s) { return (state.steps_done?.[s.id] || []).length >= stepTodos(s).length; }
-const progView = (n, all) => `<div class="todo-prog"><div class="bar"><i style="width:${n / all * 100}%"></i></div><span><b>${n}</b> / ${all} 완료</span></div>`;
+// 진행 막대만 보임, 화면 낭독기는 "n / 전체"를 읽음
+const progView = (n, all) => `<div class="todo-prog" role="progressbar" aria-label="할 일 진행" aria-valuemin="0" aria-valuemax="${all}" aria-valuenow="${n}"><div class="bar"><i style="width:${n / all * 100}%"></i></div></div>`;
 
 function mrz(days) {
   const d = state.trip.departure_date.replaceAll("-", "").slice(2);
@@ -268,9 +269,12 @@ function stepView(id) {
   return `<div class="sheet"><div class="muted">${i + 1}단계${s === nowStep() ? ` <span class="now-tag">지금 할 일</span>` : ""}</div>
       <h2 style="margin-top:4px">${s.title}</h2><p>${s.summary}</p>
       ${stepInfo(s)}
-      ${s.goItems ? `<p style="margin-top:12px;text-align:center"><button data-tab="items" data-from="${s.id}">물건 확인하기</button></p>` : ""}
       ${progView(checked.length, todos.length)}
       <ul class="todos">${todos.map((t, j) => `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}><span>${esc(t.text)}${t.source ? `<a class="todo-link" href="${t.source.url}" target="_blank" rel="noopener">공식 사이트 열기 ↗</a>` : ""}</span></label></li>`).join("")}</ul>
+      ${s.goItems ? `<button class="go-items" data-tab="items" data-from="${s.id}">
+        <span class="gi-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span>
+        <span class="gi-txt"><b>물건 확인하기</b><small>이름이나 사진으로 가져가도 되는지 확인해요</small></span>
+        <svg class="gi-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
       <details class="mistakes"><summary>자주 하는 실수</summary><ul>${s.mistakes.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>
       ${s.faq.map(([q, a, link]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p>${link === "alert" ? alertLink(country()) : ""}</details>`).join("")}
 </div>
@@ -461,7 +465,7 @@ function resultView() {
     ${r.status == null ? D.fallbackLinks.map(srcLink).join("") : ""}
     ${item.documents ? `<p style="margin-top:12px"><b>챙길 서류</b>: ${item.documents.join(", ")}</p>` : ""}
     <div class="footnote">최종 판단은 이용 항공사 안내를 확인하세요.${isMed ? " 의료 조언이 아닌 챙길 것 안내예요. 복용은 의사·약사와 상담하세요." : ""}</div>
-    <p style="margin-top:14px"><button class="full" data-act="add">내 짐에 추가</button></p></div>
+    <p style="margin-top:14px"><button class="full" data-act="add">가방에 추가</button></p></div>
   ${sourcesFoot([item.sources, r.rules.map((x) => x.source)])}`;
 }
 
@@ -492,7 +496,7 @@ function checklistView() {
 
 function bagView() {
   const bag = state.bag || [];
-  const head = `<h2>내 짐 <span class="muted">${country().name} 기준</span></h2>${checklistView()}`;
+  const head = `<h2>가방 <span class="muted">${country().name} 기준</span></h2>${checklistView()}`;
   // 출처: 챙길 것(규정 보기 붙은 물건·나라 주의)과 판정한 물건의 근거를 맨 아래에 모음
   const c = country();
   const ids = new Set([...checklist().map((x) => x.item), ...bag.map((b) => b.item_id)].filter(Boolean));
@@ -638,7 +642,7 @@ document.addEventListener("change", (e) => {
   // 다시 그리지 않고 막대만 바꿈 (늘어나는 움직임이 보이게)
   const prog = document.querySelector(".todo-prog");
   prog.querySelector("i").style.width = `${done.size / stepTodos(s).length * 100}%`;
-  prog.querySelector("b").textContent = done.size;
+  prog.setAttribute("aria-valuenow", done.size);
   if (!before && stepDone(s)) {
     (state.stamped ||= {})[s.id] = new Date().toISOString().slice(0, 10);
     stampFx(s);

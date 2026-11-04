@@ -147,10 +147,19 @@
   .todo-prog { display: flex; align-items: center; gap: 10px; margin: 16px 0 0; font-size: 13px; color: var(--muted); }
   .todo-prog .bar { flex: 1; height: 6px; border-radius: 999px; background: rgb(46 125 79 / .14); overflow: hidden; }
   .todo-prog .bar i { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width 300ms var(--ease-out); }
-  .todo-prog b { color: var(--green); font-variant-numeric: tabular-nums; }
   details { border-top: 1px dotted var(--line); padding: 8px 0; }
   summary { cursor: pointer; font-weight: 500; }
   .mistakes ul { margin: 6px 0 2px; padding-left: 20px; }
+  /* 6단계: 물건 확인으로 가는 카드형 버튼 */
+  .go-items { display: flex; align-items: center; gap: 12px; width: 100%; margin: 14px 0 12px; padding: 14px 16px; text-align: left; border-radius: 12px;
+    background: linear-gradient(135deg, var(--cover), #2B3F6B); box-shadow: 0 6px 16px rgb(27 42 74 / .22); }
+  .go-items .gi-ico { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 50%; background: rgb(255 255 255 / .14); }
+  .go-items svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .go-items .gi-txt { flex: 1; min-width: 0; }
+  .go-items b { display: block; font-size: 16px; }
+  .go-items small { display: block; margin-top: 2px; font-size: 13px; color: rgb(255 255 255 / .72); }
+  .go-items .gi-go { width: 20px; height: 20px; flex: none; color: var(--gold); transition: transform 160ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) { .go-items:hover .gi-go { transform: translateX(3px); } }
   /* 페이지 맨 아래 footer: 출처 보기 */
   .page-foot { margin-top: 20px; padding: 0 4px; }
   .page-foot .sources { border-top: 1px solid var(--line); padding-top: 12px; }
@@ -220,7 +229,7 @@
   .lv-declare { border-color: var(--amber); } .lv-declare b { color: var(--amber); }
   .lv-info { border-color: var(--blue); } .lv-info b { color: var(--blue); }
 
-  /* 내 짐: 챙길 것 체크리스트 */
+  /* 가방: 챙길 것 체크리스트 */
   .checklist h3 { margin: 0 0 4px; font-size: 17px; }
   .checklist h4 { margin: 14px 0 0; font-size: 13px; color: var(--muted); font-weight: 500; }
   .checklist .count b { font-size: 36px; }
@@ -235,7 +244,7 @@
   .own-add .row input { flex: 1; min-width: 0; }
   .own-add .row button { flex: none; }
 
-  /* 내 짐 */
+  /* 가방 */
   .group h3 { font-size: 15px; margin: 0 0 6px; }
   /* 짐표: 왼쪽 색 띠(판정 잉크색) + 끈 구멍 */
   .tag { position: relative; padding-left: 50px; border-radius: 10px; --tag-c: var(--muted); }
@@ -250,7 +259,10 @@
   /* 왼쪽 위 메뉴 */
   header { justify-content: flex-start; gap: 12px; }
   .menu { position: relative; border: 0; padding: 0; } /* FAQ용 details 구분선이 메뉴에 붙지 않게 */
-  .menu summary { position: relative; list-style: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--cover); color: var(--gold); cursor: pointer; }
+  .menu summary { position: relative; list-style: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--paper); color: var(--cover); border: 1px solid var(--line); cursor: pointer; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+  /* 평소에는 종이색 칸으로 화면에 녹아들고, 열렸을 때만 남색으로 */
+  .menu[open] summary { background: var(--cover); color: #fff; border-color: var(--cover); }
+  @media (hover: hover) and (pointer: fine) { .menu summary:hover { border-color: var(--cover); } }
   .menu summary::after { content: ""; position: absolute; inset: -4px; } /* 보이는 크기는 36px, 누르는 영역은 44px 유지 */
   .menu summary::-webkit-details-marker { display: none; }
   .menu summary svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
