@@ -135,10 +135,22 @@
   /* 단계 상세 */
   .todos { list-style: none; padding: 0; margin: 12px 0; }
   .todos li { border-bottom: 1px dotted var(--line); }
-  .todos label { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 9px 0; color: var(--ink); font-size: 15px; }
-  .todos input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--green); flex: none; }
+  .todos label { display: flex; gap: 12px; align-items: flex-start; margin: 0; padding: 11px 0; color: var(--ink); font-size: 15px; cursor: pointer; transition: color 200ms ease; }
+  .todos label:has(input:checked) { color: var(--muted); }
+  /* 둥근 체크 버튼: 체크하면 초록으로 차고 살짝 튐 */
+  .todos input { appearance: none; width: 22px; height: 22px; margin: 0; padding: 0; flex: none; display: grid; place-content: center; border: 2px solid var(--line); border-radius: 50%; background: #fff; cursor: pointer; transition: background-color 160ms ease, border-color 160ms ease; }
+  .todos input::after { content: ""; width: 5px; height: 10px; margin-top: -2px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg) scale(0); transition: transform 200ms var(--ease-out); }
+  .todos input:checked { background: var(--green); border-color: var(--green); animation: check-pop 260ms var(--ease-out); }
+  .todos input:checked::after { transform: rotate(45deg) scale(1); }
+  @keyframes check-pop { 50% { scale: 1.15; } }
+  .todos .todo-link { display: block; width: fit-content; margin-top: 2px; padding: 4px 0; font-size: 13px; color: var(--blue); }
+  .todo-prog { display: flex; align-items: center; gap: 10px; margin: 16px 0 0; font-size: 13px; color: var(--muted); }
+  .todo-prog .bar { flex: 1; height: 6px; border-radius: 999px; background: rgb(46 125 79 / .14); overflow: hidden; }
+  .todo-prog .bar i { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width 300ms var(--ease-out); }
+  .todo-prog b { color: var(--green); font-variant-numeric: tabular-nums; }
   details { border-top: 1px dotted var(--line); padding: 8px 0; }
   summary { cursor: pointer; font-weight: 500; }
+  .mistakes ul { margin: 6px 0 2px; padding-left: 20px; }
   /* 페이지 맨 아래 footer: 출처 보기 */
   .page-foot { margin-top: 20px; padding: 0 4px; }
   .page-foot .sources { border-top: 1px solid var(--line); padding-top: 12px; }
@@ -151,13 +163,25 @@
   .photo-btn:focus-within { outline: 3px solid var(--violet); outline-offset: 2px; }
   @media (hover: hover) and (pointer: fine) { .photo-btn:hover { background: rgb(27 42 74 / .04); } }
   .photo-msg { margin: 14px 0 0; font-weight: 700; }
+  .manual { margin-top: 16px; padding-top: 12px; border-top: 1px dotted var(--line); }
+  .manual h3 { margin: 0; font-size: 15px; color: var(--cover); }
+  .manual .note { margin-top: 14px; }
   .photo-msg + .muted { display: flex; align-items: center; gap: 6px; }
   .photo-msg + .muted .gico { width: 16px; height: 16px; }
 
   /* 물건 판정 */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .groups h3 { display: flex; align-items: center; gap: 8px; margin: 20px 0 0; font-size: 14px; color: var(--cover); }
-  .groups .chips { margin-top: 8px; }
+  .groups { margin-top: 12px; }
+  .grp { border-top: 1px dotted var(--line); padding: 0; }
+  .grp:last-child { border-bottom: 1px dotted var(--line); }
+  .grp summary { display: flex; align-items: center; gap: 8px; min-height: 48px; list-style: none; font-size: 15px; font-weight: 700; color: var(--cover); }
+  .grp summary::-webkit-details-marker { display: none; }
+  .grp .gname { flex: 1; }
+  .grp .gmeta { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .grp .gmeta em { font-style: normal; color: var(--red); font-weight: 700; }
+  .grp .chev { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms var(--ease-out); }
+  .grp[open] .chev { transform: rotate(180deg); }
+  .grp .chips { margin: 0 0 14px; }
   .gico { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .chips .ban { margin-left: 6px; padding: 0 5px; border: 1.5px solid currentColor; border-radius: 4px; color: var(--red); font-size: 11px; font-weight: 700; vertical-align: 1px; }
   .chips button { background: #fff; color: var(--cover); border: 1px solid var(--line); padding: 10px 14px; font-size: 14px; }
@@ -204,6 +228,12 @@
   .checklist .todos li { display: flex; align-items: center; gap: 8px; }
   .checklist .todos li > label { flex: 1; }
   .checklist .todos .link { flex: none; font-size: 13px; min-height: 44px; }
+  .checklist .todos .del { color: var(--muted); }
+  .own-add { margin-top: 16px; padding-top: 12px; border-top: 1px dotted var(--line); }
+  .own-add label { margin-top: 0; }
+  .own-add .row { display: flex; gap: 8px; }
+  .own-add .row input { flex: 1; min-width: 0; }
+  .own-add .row button { flex: none; }
 
   /* 내 짐 */
   .group h3 { font-size: 15px; margin: 0 0 6px; }
@@ -288,6 +318,9 @@
   @keyframes vt-in { from { opacity: 0; transform: translateY(12px); } }
   @media (prefers-reduced-motion: reduce) {
     .stampfx div { animation: none; }
+    .todos input:checked { animation: none; }
+    .grp .chev { transition: none; }
+    .todos input::after, .todo-prog .bar i { transition: none; }
     ::view-transition-new(root) { animation: vt-fade 240ms ease both; } /* 움직임 없이 흐려졌다 나타나기만 */
     .verdict, .menu nav { transition: opacity 160ms ease; }
     @starting-style { .verdict { scale: 1; } .menu[open] nav { transform: none; } }

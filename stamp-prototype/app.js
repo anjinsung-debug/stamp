@@ -119,7 +119,10 @@ function renderSetup() {
     </div></div>`;
 }
 
-function stepDone(s) { return (state.steps_done?.[s.id] || []).length === s.todos.length; }
+// 단계 할 일 + 나라별 할 일 (data.js countries[].todos), 글자만 있거나 { text, source }
+const stepTodos = (s) => [...s.todos, ...(country().todos?.[s.id] || [])].map((t) => typeof t === "string" ? { text: t } : t);
+function stepDone(s) { return (state.steps_done?.[s.id] || []).length >= stepTodos(s).length; }
+const progView = (n, all) => `<div class="todo-prog"><div class="bar"><i style="width:${n / all * 100}%"></i></div><span><b>${n}</b> / ${all} 완료</span></div>`;
 
 function mrz(days) {
   const d = state.trip.departure_date.replaceAll("-", "").slice(2);
@@ -237,7 +240,7 @@ function gateView() {
 function stepSources(s) {
   const c = country();
   const by = { gate: D.airports[airportId()].sources, entry: [c.entry?.source], power: [c.info.source], calls: [c.emergencySource] };
-  const all = [...(by[s.info] || []), ...(s.links || [])].filter(Boolean);
+  const all = [...(by[s.info] || []), ...(s.links || []), ...stepTodos(s).map((t) => t.source)].filter(Boolean);
   return all.filter((x, i) => all.findIndex((y) => y.url === x.url) === i);
 }
 
@@ -260,20 +263,22 @@ function stepView(id) {
   const i = D.steps.findIndex((x) => x.id === id);
   const s = D.steps[i];
   const checked = state.steps_done?.[s.id] || [];
+  const todos = stepTodos(s);
   const srcs = stepSources(s);
   return `<div class="sheet"><div class="muted">${i + 1}단계${s === nowStep() ? ` <span class="now-tag">지금 할 일</span>` : ""}</div>
       <h2 style="margin-top:4px">${s.title}</h2><p>${s.summary}</p>
       ${stepInfo(s)}
       ${s.goItems ? `<p style="margin-top:12px;text-align:center"><button data-tab="items" data-from="${s.id}">물건 확인하기</button></p>` : ""}
-      <ul class="todos">${s.todos.map((t, j) => `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}>${esc(t)}</label></li>`).join("")}</ul>
-      <h2 style="font-size:15px">자주 하는 실수</h2><ul>${s.mistakes.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
+      ${progView(checked.length, todos.length)}
+      <ul class="todos">${todos.map((t, j) => `<li><label><input type="checkbox" data-todo="${j}" ${checked.includes(j) ? "checked" : ""}><span>${esc(t.text)}${t.source ? `<a class="todo-link" href="${t.source.url}" target="_blank" rel="noopener">공식 사이트 열기 ↗</a>` : ""}</span></label></li>`).join("")}</ul>
+      <details class="mistakes"><summary>자주 하는 실수</summary><ul>${s.mistakes.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>
       ${s.faq.map(([q, a, link]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p>${link === "alert" ? alertLink(country()) : ""}</details>`).join("")}
 </div>
     <div class="pager">
       ${i > 0 ? `<button class="ghost" data-step="${D.steps[i - 1].id}"><small>이전 ${i}단계</small>${D.steps[i - 1].title}</button>` : "<span></span>"}
       ${i < D.steps.length - 1 ? `<button class="ghost next" data-step="${D.steps[i + 1].id}"><small>다음 ${i + 2}단계</small>${D.steps[i + 1].title}</button>` : ""}
     </div>
-    ${srcs.length ? `<footer class="page-foot"><details class="sources"><summary>출처 보기 (${srcs.length})</summary>${srcs.map(srcLink).join("")}</details></footer>` : ""}`;
+    ${sourcesFoot(srcs)}`;
 }
 
 function itemsView() {
@@ -283,8 +288,12 @@ function itemsView() {
   const banned = new Set(country().rules.filter((r) => r.level === "banned").flatMap((r) => r.items));
   const chips = (list) => `<div class="chips">${list.map((i) => `<button data-item="${i.id}">${esc(i.name)}${banned.has(i.id)
     ? `<span class="ban">${country().name} 금지</span>` : ""}</button>`).join("")}</div>`;
-  const grouped = `<div class="groups">${D.groups.map((g) =>
-    `<h3>${gicon(g.icon)}${g.name}</h3>${chips(g.items.map(itemById))}`).join("")}</div>`;
+  // 카테고리는 접어 두고 눌러서 펼침 (펼친 상태는 다시 그려도 유지: view.open)
+  const grouped = `<div class="groups">${D.groups.map((g) => {
+    const nBan = g.items.filter((id) => banned.has(id)).length;
+    return `<details class="grp" data-grp="${g.id}" ${view.open?.includes(g.id) ? "open" : ""}><summary>${gicon(g.icon)}<span class="gname">${g.name}</span>
+      <span class="gmeta">${g.items.length}개${nBan ? ` · <em>${country().name} 금지 ${nBan}</em>` : ""}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>${chips(g.items.map(itemById))}</details>`;
+  }).join("")}</div>`;
   // 찾기 결과: 찾은 물건에 걸리는 여행 국가 반입 주의(입국 금지·신고·참고)를 바로 아래에
   const c = country();
   const hitRules = c.rules.filter((r) => r.items.some((id) => hits.some((h) => h.id === id)));
@@ -305,12 +314,13 @@ function itemsView() {
     ${hitRules.length && !view.photo ? rulesFoot(hitRules) : ""}`;
 }
 
-// 반입 주의 출처는 페이지 맨 아래
-function rulesFoot(rules) {
-  const all = rules.flatMap((r) => [].concat(r.source));
+// 출처는 모든 화면에서 페이지 맨 아래 "출처 보기"에 모음 (같은 주소는 한 번만)
+function sourcesFoot(list) {
+  const all = list.flat(Infinity).filter(Boolean); // 규정 하나에 출처가 여러 개(배열)일 수 있음
   const srcs = all.filter((x, i) => all.findIndex((y) => y.url === x.url) === i);
-  return `<footer class="page-foot"><details class="sources"><summary>출처 보기 (${srcs.length})</summary>${srcs.map(srcLink).join("")}</details></footer>`;
+  return srcs.length ? `<footer class="page-foot"><details class="sources"><summary>출처 보기 (${srcs.length})</summary>${srcs.map(srcLink).join("")}</details></footer>` : "";
 }
+const rulesFoot = (rules) => sourcesFoot(rules.map((r) => r.source));
 
 // 사진 판별 결과: AI가 고른 후보를 보여 주고, 사용자가 눌러서 확정
 const PHOTO_ERR = { no_key: "사진 인식이 아직 설정되지 않았어요.", quota: "오늘 사진 인식 횟수를 다 썼어요.", limit: "사진 확인을 짧은 시간에 너무 많이 했어요. 잠시 뒤에 다시 해 주세요." };
@@ -319,19 +329,68 @@ function photoView() {
   if (!p) return "";
   if (p.status === "loading") return `<p class="photo-msg" role="status">사진을 보고 있어요…</p>`;
   const retry = `<p class="footnote">이름으로 찾거나 다시 찍어 보세요. <button class="link" data-act="photo-clear">목록 보기</button></p>`;
-  if (p.status === "error") return `<p class="photo-msg" role="alert">${PHOTO_ERR[p.error] || "지금은 사진 인식이 어려워요."}</p>${retry}`;
+  if (p.status === "error") return `<p class="photo-msg" role="alert">${PHOTO_ERR[p.error] || "지금은 사진 인식이 어려워요."}</p>${manualView()}${retry}`;
   const r = p.result;
   const g = D.groups.find((x) => x.id === r.group);
   let ids = [...new Set([r.item_id, ...r.candidates])].filter((id) => id !== "unknown");
   // 물건은 모르지만 묶음은 알아봤으면 그 묶음의 물건들 중에서 고르게 함
   const byGroup = !ids.length && g;
   if (byGroup) ids = g.items;
-  if (!ids.length) return `<p class="photo-msg" role="alert">무슨 물건인지 잘 알아보지 못했어요.</p>${retry}`;
+  if (!ids.length) return `<p class="photo-msg" role="alert">무슨 물건인지 잘 알아보지 못했어요.</p>${manualView()}${retry}`;
   const msg = byGroup ? `${g.name} 쪽 물건 같아요. 이 중에 있나요?` : r.confidence === "high" ? "이 물건이 맞나요?" : "이 중에 있나요?";
   return `<p class="photo-msg" role="status">${msg}</p>
     ${g && !byGroup ? `<p class="muted" style="margin:2px 0 0">${gicon(g.icon)}${g.name}</p>` : ""}
     <div class="chips">${ids.map((id) => `<button data-item="${id}">${esc(itemById(id).name)}</button>`).join("")}</div>
-    <p class="footnote">AI가 사진을 보고 고른 결과예요. 맞는 물건을 눌러 주세요. 사진은 저장하지 않아요.</p>${retry}`;
+    <p class="footnote">AI가 사진을 보고 고른 결과예요. 맞는 물건을 눌러 주세요. 사진은 저장하지 않아요.</p>
+    ${p.manual ? manualView(byGroup ? g.id : "") : `<p><button class="ghost full" data-act="manual-open">이 중에 없어요 · 직접 적어서 확인하기</button></p>`}${retry}`;
+}
+
+// 사진으로 못 알아봤을 때: 이름과 종류를 직접 적으면 규정표에서 찾고, 없으면 AI가 글을 보고 규정표 물건을 고름
+// 판정은 언제나 규정표로 함 (AI가 가능/불가를 정하지 않음)
+function manualView(preset = "") {
+  const m = view.photo.manual || {};
+  const gsel = m.group ?? preset;
+  const opts = `<option value="">잘 모르겠어요</option>` + D.groups.map((g) => `<option value="${g.id}" ${gsel === g.id ? "selected" : ""}>${g.name}</option>`).join("");
+  let out = "";
+  if (m.status === "loading") out = `<p class="photo-msg" role="status">찾고 있어요…</p>`;
+  else if (m.status === "done" && m.ids.length) out = `<p class="photo-msg" role="status">이 물건인가요? 눌러서 반입 규정을 확인하세요.</p>
+    <div class="chips">${m.ids.map((id) => `<button data-item="${id}">${esc(itemById(id).name)}</button>`).join("")}</div>
+    ${m.by === "ai" ? `<p class="footnote">AI가 적은 내용을 보고 고른 물건이에요. 판정은 공식 규정표로 해요.</p>` : ""}`;
+  else if (m.status === "done") {
+    const g = D.groups.find((x) => x.id === m.group);
+    out = `<div class="note lv-info" role="status"><b>${m.failed ? "지금은 AI 확인이 어려워요. 잠시 뒤 다시 해 보세요" : `"${esc(m.text)}"은(는) 아직 규정표에 없어요`}</b>아래 공식 안내에서 물건 이름으로 검색해 보세요.${g ? ` 비슷한 ${g.name} 물건의 규정도 참고할 수 있어요.` : ""}</div>
+      ${[SRC.avsec, ...D.fallbackLinks].map(srcLink).join("")}
+      ${g ? `<div class="chips">${g.items.map((id) => `<button data-item="${id}">${esc(itemById(id).name)}</button>`).join("")}</div>` : ""}`;
+  }
+  return `<div class="manual"><h3>직접 적어서 확인하기</h3>
+    <label for="mname">물건 이름이나 설명</label><input id="mname" maxlength="60" autocomplete="off" placeholder="예: 캠핑용 가스, 무선 고데기" value="${esc(m.text || "")}">
+    <label for="mgroup">어떤 종류인가요?</label><select id="mgroup">${opts}</select>
+    <p style="margin-top:12px"><button class="full" data-act="manual-check">반입 가능한지 확인하기</button></p>
+    ${out}</div>`;
+}
+
+async function checkManual() {
+  const text = document.getElementById("mname").value.trim();
+  const group = document.getElementById("mgroup").value;
+  if (!text) return showErr("mname", "물건 이름이나 설명을 적어 주세요.");
+  const photo = view.photo;
+  // 1) 규정표 이름에서 먼저 찾기 (고른 종류가 있으면 그 종류 안에서)
+  const g = D.groups.find((x) => x.id === group);
+  let ids = search(text).map((i) => i.id).filter((id) => !g || g.items.includes(id));
+  if (ids.length) { photo.manual = { text, group, status: "done", ids, by: "local" }; return render(); }
+  // 2) 없으면 AI에게 글을 보여 주고 규정표 물건 고르기
+  photo.manual = { text, group, status: "loading" };
+  render();
+  try {
+    const r = await fetch("/api/identify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, group: group || null }) });
+    if (!r.ok) throw r;
+    const data = await r.json();
+    ids = [...new Set([data.item_id, ...(data.candidates || [])])].filter((id) => id && id !== "unknown" && itemById(id));
+    photo.manual = { text, group: group || (data.group !== "unknown" ? data.group : ""), status: "done", ids, by: "ai" };
+  } catch {
+    photo.manual = { text, group, status: "done", ids: [], by: "ai", failed: true }; // AI 확인 실패: 규정표에 없다고 단정하지 않음
+  }
+  if (view.photo === photo) render(); // 그 사이 다른 화면으로 갔으면 그대로
 }
 
 // 사진을 1024px 이하 JPEG로 줄여서 보냄 (무료 한도·전송량 절약)
@@ -384,9 +443,8 @@ function resultView() {
   const ENTRY = { banned: "입국 금지", declare: "신고·서류 확인", info: "참고할 점 있음", ok: "제한 없음" };
   // 여행 국가 입국 금지면 한국 공항을 통과해도 못 가져가는 것으로 판정. 한국 공항 규정은 아래에 참고로만
   const banned = entry === "banned";
-  const departure = `${r.note ? `<p${banned ? ' class="muted"' : ""}>${banned ? `<b>참고: 한국 공항 보안검색은 ${main}</b><br>` : ""}${r.note}</p>` : ""}${item.reason ? `<p class="muted">${item.reason}</p>` : ""}
-    ${(item.sources || []).map(srcLink).join("")}`;
-  const entryNotes = r.rules.map((x) => `<div class="note lv-${x.level}"><b>${country().name} ${LEVEL[x.level]}</b>${x.message}</div>${[].concat(x.source).map(srcLink).join("")}`).join("");
+  const departure = `${r.note ? `<p${banned ? ' class="muted"' : ""}>${banned ? `<b>참고: 한국 공항 보안검색은 ${main}</b><br>` : ""}${r.note}</p>` : ""}${item.reason ? `<p class="muted">${item.reason}</p>` : ""}`;
+  const entryNotes = r.rules.map((x) => `<div class="note lv-${x.level}"><b>${country().name} ${LEVEL[x.level]}</b>${x.message}</div>`).join("");
   return `${back}<article class="pass" aria-label="${esc(item.name)} 판정">
     ${r.banner ? `<div class="banner">가져가지 마세요</div>` : ""}
     <div class="pass-top"><h2>${esc(item.name)}</h2>
@@ -403,7 +461,8 @@ function resultView() {
     ${r.status == null ? D.fallbackLinks.map(srcLink).join("") : ""}
     ${item.documents ? `<p style="margin-top:12px"><b>챙길 서류</b>: ${item.documents.join(", ")}</p>` : ""}
     <div class="footnote">최종 판단은 이용 항공사 안내를 확인하세요.${isMed ? " 의료 조언이 아닌 챙길 것 안내예요. 복용은 의사·약사와 상담하세요." : ""}</div>
-    <p style="margin-top:14px"><button class="full" data-act="add">내 짐에 추가</button></p></div>`;
+    <p style="margin-top:14px"><button class="full" data-act="add">내 짐에 추가</button></p></div>
+  ${sourcesFoot([item.sources, r.rules.map((x) => x.source)])}`;
 }
 
 // 기본 항목 + 여행 국가 항목 (입국 금지 규정, 공식 안내에 어댑터가 필요하다고 나온 나라)
@@ -412,7 +471,9 @@ function checklist() {
   const extra = c.rules.filter((r) => r.level === "banned").flatMap((r) => r.items.map((id) =>
     ({ id: `${state.trip.country}_no_${id}`, cat: `${c.name} 주의`, text: `${itemById(id).name} 넣지 않기`, item: id })));
   if (c.info.adapter) extra.unshift({ id: `${state.trip.country}_adapter`, cat: `${c.name} 주의`, text: `여행용 어댑터 (${c.info.plug.split(" — ")[0]})` });
-  return [...D.checklist, ...extra];
+  // 내가 직접 적은 물건: 이름이 규정표 물건과 맞으면 규정 보기도 붙임
+  const own = (state.checklist_own || []).map((x) => ({ ...x, cat: "내가 추가한 것", own: true, item: search(x.text)[0]?.id }));
+  return [...D.checklist, ...extra, ...own];
 }
 
 function checklistView() {
@@ -424,13 +485,19 @@ function checklistView() {
     <div class="count" aria-label="${list.length}개 중 ${n}개 챙김"><b>${two(n)}</b><span>/ ${list.length}</span></div></div>
     ${cats.map((cat) => `<h4>${esc(cat)}</h4><ul class="todos">${list.filter((x) => x.cat === cat).map((x) =>
       `<li><label><input type="checkbox" data-check="${x.id}" ${done.includes(x.id) ? "checked" : ""}>${esc(x.text)}</label>${x.item
-        ? `<button class="link" data-tab="items" data-item="${x.item}">규정 보기</button>` : ""}</li>`).join("")}</ul>`).join("")}</div>`;
+        ? `<button class="link" data-tab="items" data-item="${x.item}">규정 보기</button>` : ""}${x.own
+        ? `<button class="link del" data-act="own-del" data-own="${x.id}" aria-label="${esc(x.text)} 지우기">지우기</button>` : ""}</li>`).join("")}</ul>`).join("")}
+    <div class="own-add"><label for="own">직접 추가</label><div class="row"><input id="own" maxlength="40" placeholder="예: 우산, 선글라스" autocomplete="off"><button data-act="own-add">추가</button></div></div></div>`;
 }
 
 function bagView() {
   const bag = state.bag || [];
   const head = `<h2>내 짐 <span class="muted">${country().name} 기준</span></h2>${checklistView()}`;
-  if (!bag.length) return `${head}<div class="sheet"><h3>판정한 물건</h3><p>아직 담은 물건이 없어요.</p><button data-tab="items">물건 확인하기</button></div>`;
+  // 출처: 챙길 것(규정 보기 붙은 물건·나라 주의)과 판정한 물건의 근거를 맨 아래에 모음
+  const c = country();
+  const ids = new Set([...checklist().map((x) => x.item), ...bag.map((b) => b.item_id)].filter(Boolean));
+  const foot = sourcesFoot([[...ids].map((id) => itemById(id).sources), c.rules.filter((r) => r.items.some((id) => ids.has(id))).map((r) => r.source), c.info.adapter ? c.info.source : null]);
+  if (!bag.length) return `${head}<div class="sheet"><h3>판정한 물건</h3><p>아직 담은 물건이 없어요.</p><button data-tab="items">물건 확인하기</button></div>${foot}`;
   const groups = {};
   bag.forEach((b, idx) => {
     const item = itemById(b.item_id);
@@ -439,7 +506,7 @@ function bagView() {
   return head + Object.keys(BUCKET).filter((k) => groups[k]).map((k) =>
     `<section class="sheet group tag t-${k}"><h3>${BUCKET[k]}</h3><ul>${groups[k].map(({ item, b, idx }) =>
       `<li><span>${esc(item.name)}${b.answers?.[item.rule?.field] ? ` (${num(b.answers[item.rule.field])}${item.rule.unit})` : ""}</span>
-       <button class="link" data-del="${idx}">빼기</button></li>`).join("")}</ul></section>`).join("");
+       <button class="link" data-del="${idx}">빼기</button></li>`).join("")}</ul></section>`).join("") + foot;
 }
 
 // 입력칸 바로 아래에 오류를 보여주고 화면 낭독기와 연결
@@ -463,7 +530,7 @@ function stampFx(s) {
   el.setAttribute("role", "status");
   el.innerHTML = `<div>${icon(s.id)}STAMP<small>${esc(s.title)} 완료</small></div>`;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1300);
+  setTimeout(() => el.remove(), 800);
 }
 
 // ---------- 이벤트 ----------
@@ -476,6 +543,21 @@ document.addEventListener("click", (e) => {
   const d = t.dataset;
   if (d.tab) Object.assign(view, { tab: d.tab, step: null, item: null, photo: null, from: d.from || null });
   if (d.act === "photo-clear") view.photo = null;
+  if (d.act === "manual-open") { view.photo.manual = {}; render(); return document.getElementById("mname").focus(); }
+  if (d.act === "manual-check") return checkManual();
+  if (d.act === "own-add") {
+    const text = document.getElementById("own").value.trim();
+    if (!text) return showErr("own", "챙길 물건 이름을 적어 주세요.");
+    (state.checklist_own ||= []).push({ id: `own_${Date.now()}`, text });
+    save(); render();
+    return document.getElementById("own").focus(); // 이어서 더 적을 수 있게
+  }
+  if (d.act === "own-del") {
+    state.checklist_own = state.checklist_own.filter((x) => x.id !== d.own);
+    state.checklist_done = (state.checklist_done || []).filter((id) => id !== d.own);
+    save(); render();
+    return document.getElementById("own").focus();
+  }
   if (d.step) Object.assign(view, { tab: "road", step: d.step });
   if (d.item) Object.assign(view, { item: d.item, answers: {} });
   if (d.del) { state.bag.splice(+d.del, 1); save(); }
@@ -553,6 +635,10 @@ document.addEventListener("change", (e) => {
   e.target.checked ? done.add(i) : done.delete(i);
   const before = stepDone(s);
   (state.steps_done ||= {})[s.id] = [...done];
+  // 다시 그리지 않고 막대만 바꿈 (늘어나는 움직임이 보이게)
+  const prog = document.querySelector(".todo-prog");
+  prog.querySelector("i").style.width = `${done.size / stepTodos(s).length * 100}%`;
+  prog.querySelector("b").textContent = done.size;
   if (!before && stepDone(s)) {
     (state.stamped ||= {})[s.id] = new Date().toISOString().slice(0, 10);
     stampFx(s);
@@ -562,13 +648,25 @@ document.addEventListener("change", (e) => {
       if (view.tab !== "road" || view.step !== shown || !stepDone(s)) return;
       view.step = null;
       swap(() => { render(); app.focus(); window.scrollTo(0, 0); });
-    }, 1300);
+    }, 800);
   }
   save();
 });
 
+// details의 toggle은 위로 전달되지 않아 capture로 받음
+document.addEventListener("toggle", (e) => {
+  const id = e.target.dataset?.grp;
+  if (!id) return;
+  const open = new Set(view.open || []);
+  e.target.open ? open.add(id) : open.delete(id);
+  view.open = [...open];
+}, true);
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.id === "q") { Object.assign(view, { query: e.target.value.trim(), photo: null }); render(); }
+  if (e.isComposing) return; // 한글 입력 중 엔터는 글자 확정용이라 무시 (마지막 글자가 두 번 들어가지 않게)
+  if (e.key === "Enter" && e.target.id === "mname") checkManual();
+  if (e.key === "Enter" && e.target.id === "own") document.querySelector('[data-act="own-add"]').click();
   if (e.key === "Enter" && e.target.id === "gate") document.querySelector('[data-act="gate"]').click();
   const menu = document.querySelector(".menu[open]");
   if (e.key === "Escape" && menu) { menu.open = false; menu.querySelector("summary").focus(); }
