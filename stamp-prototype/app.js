@@ -214,14 +214,14 @@ const airportId = () => (D.airports[state.airport] ? state.airport : "icn");
 function airportView() {
   const id = airportId(), a = D.airports[id];
   const opts = Object.entries(D.airports).map(([k, x]) => `<option value="${k}" ${k === id ? "selected" : ""}>${x.name}</option>`).join("");
-  return `<div class="info gate"><h3>출발 공항</h3><label for="ap" style="margin-top:0">어느 공항에서 출발하나요?</label><select id="ap">${opts}</select>
+  return `<div class="info gate"><h3>출발 공항</h3><label for="ap" style="margin-top:0" class="sr">어느 공항에서 출발하나요?</label><select id="ap" class="ap-select">${opts}</select>
     ${a.buildings ? gateView() : kacView(a)}</div>`;
 }
 
 function kacView(a) {
-  return `<p class="gate-where">${a.name} 국제선 출국 순서예요.</p>
+  return `<h4 class="gsub">${a.name} 국제선 출국 순서</h4>
     <ol class="gate-steps">${D.kacSteps.map((x) => `<li>${x}</li>`).join("")}</ol>
-    <p class="footnote">탑승구 번호는 탑승권과 공항 전광판, 아래 실시간 출발 안내에서 확인하세요.</p>
+    <p class="gtip">탑승구 번호는 탑승권과 공항 전광판, 아래 실시간 출발 안내에서 확인하세요.</p>
     <a class="alert map" href="${a.board.url}" target="_blank" rel="noopener">${a.name} 실시간 출발 안내<span>새 창</span></a>`;
 }
 
@@ -230,10 +230,17 @@ function gateView() {
   const result = b ? `<p class="gate-where" tabindex="-1"><b>${g}번 게이트</b>는 <b>${A.buildings[b].name}</b>에 있어요.</p>${gateMap(b)}
     <p class="footnote" style="margin-top:0">실제 도면이 아니라 건물 위치 관계를 나타낸 그림이에요.</p>
     <ol class="gate-steps">${gateSteps(b, g).map((x) => `<li>${x}</li>`).join("")}</ol>` : "";
-  return `<label for="gate">인천공항 게이트 찾기: 탑승권에 적힌 게이트 번호</label>
+  // 내 항공사 터미널 → 게이트 찾기 순서로
+  // 항공사 글("A·B, 기타 외국항공사")을 이름표로 나눔
+  const term = (k) => `<div class="term"><b>${A.buildings[k].name}</b><ul class="airlines">${A.buildings[k].airlines.split(/·|, /)
+    .map((x) => `<li${x.startsWith("기타") ? ' class="etc"' : ""}>${x}</li>`).join("")}</ul></div>`;
+  return `<h4 class="gsub">항공사별 터미널</h4>
+    <div class="terms">${term("T1")}${term("T2")}</div>
+    <p class="gtip">공동운항편은 다를 수 있어요. 전자항공권에서 꼭 확인하세요.</p>
+    <h4 class="gsub">게이트 찾기</h4>
+    <label for="gate" class="sr">탑승권에 적힌 게이트 번호</label>
     <div class="row"><input id="gate" type="number" min="1" inputmode="numeric" enterkeyhint="search" placeholder="게이트 번호 입력" value="${g ?? ""}"><button data-act="gate" style="flex:none">찾기</button></div>
     ${result}
-    <p class="footnote">터미널은 항공사마다 달라요. 제2여객터미널은 ${A.buildings.T2.airlines}, 제1여객터미널은 ${A.buildings.T1.airlines}. 공동운항편은 다를 수 있으니 전자항공권에서 꼭 확인하세요.</p>
     <a class="alert map" href="${A.map.url}" target="_blank" rel="noopener">인천공항 공식 지도 보기<span>새 창</span></a>`;
 }
 
