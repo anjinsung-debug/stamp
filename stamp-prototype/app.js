@@ -319,15 +319,16 @@ function itemsView() {
   const list = !view.query ? grouped
     : hits.length ? chips(hits) + notes
     : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요. 공식 안내에서 확인하세요.</p>${D.fallbackLinks.map(srcLink).join("")}`;
-  // 단계에서 왔으면 그 단계로, 메뉴로 왔으면 지금 할 단계로 돌아가는 링크
-  const back = D.steps.find((x) => x.id === (view.from || nowStep()?.id));
-  const backLink = back ? `<p><button class="link" data-step="${back.id}">${D.steps.indexOf(back) + 1}단계 ${back.title}${view.from ? `${ro(back.title)} 돌아가기` : " · 지금 할 일로 가기"}</button></p>` : "";
-  return `${backLink}<h2>물건 확인</h2><div class="sheet">
+  // 단계 화면(짐 싸기 등)에서 들어왔을 때만, 목록 아래에 그 단계로 돌아가는 버튼
+  const back = D.steps.find((x) => x.id === view.from);
+  const backLink = back ? `<p><button class="ghost full" data-step="${back.id}">← ${D.steps.indexOf(back) + 1}단계 ${back.title}${ro(back.title)} 돌아가기</button></p>` : "";
+  return `<h2>물건 확인</h2><div class="sheet">
       <label for="q">가져갈 물건 이름</label>
       <div class="row"><input id="q" enterkeyhint="search" placeholder="보조배터리, 육포, 감기약" value="${esc(view.query)}"><button data-act="search" style="flex:none">찾기</button></div>
       <label class="photo-btn">사진으로 확인하기<input type="file" id="photo" accept="image/*"></label>
       ${photoView()}
       ${view.photo ? "" : list}</div>
+    ${backLink}
     ${hitRules.length && !view.photo ? rulesFoot(hitRules) : ""}`;
 }
 
@@ -500,10 +501,16 @@ function checklistView() {
   const cats = [...new Set(list.map((x) => x.cat))];
   return `<div class="sheet checklist"><div class="col-head"><div><h3>챙길 것</h3><p class="muted">${n === list.length ? "다 챙겼어요." : "가방에 넣었으면 체크하세요."}</p></div>
     <div class="count" aria-label="${list.length}개 중 ${n}개 챙김"><b>${two(n)}</b><span>/ ${list.length}</span></div></div>
-    ${cats.map((cat) => `<h4>${esc(cat)}</h4><ul class="todos">${list.filter((x) => x.cat === cat).map((x) =>
+    <div class="groups">${cats.map((cat) => {
+      // 물건 확인처럼 카테고리를 접고 펼침 (펼친 상태는 view.open에 "ck-이름"으로 유지)
+      const items = list.filter((x) => x.cat === cat), k = items.filter((x) => done.includes(x.id)).length;
+      return `<details class="grp" data-grp="ck-${esc(cat)}" ${view.open?.includes(`ck-${cat}`) ? "open" : ""}><summary><span class="gname">${esc(cat)}</span>
+      <span class="gmeta">${k === items.length ? "다 챙김" : `${k} / ${items.length}`}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <ul class="todos">${items.map((x) =>
       `<li><label><input type="checkbox" data-check="${x.id}" ${done.includes(x.id) ? "checked" : ""}>${esc(x.text)}</label>${x.item
         ? `<button class="link" data-tab="items" data-item="${x.item}">규정 보기</button>` : ""}${x.own
-        ? `<button class="link del" data-act="own-del" data-own="${x.id}" aria-label="${esc(x.text)} 지우기">지우기</button>` : ""}</li>`).join("")}</ul>`).join("")}
+        ? `<button class="link del" data-act="own-del" data-own="${x.id}" aria-label="${esc(x.text)} 지우기">지우기</button>` : ""}</li>`).join("")}</ul></details>`;
+    }).join("")}</div>
     <div class="own-add"><label for="own">직접 추가</label><div class="row"><input id="own" maxlength="40" placeholder="예: 우산, 선글라스" autocomplete="off"><button data-act="own-add">추가</button></div></div></div>`;
 }
 
@@ -566,6 +573,7 @@ document.addEventListener("click", (e) => {
     const text = document.getElementById("own").value.trim();
     if (!text) return showErr("own", "챙길 물건 이름을 적어 주세요.");
     (state.checklist_own ||= []).push({ id: `own_${Date.now()}`, text });
+    view.open = [...new Set([...(view.open || []), "ck-내가 추가한 것"])]; // 추가한 물건이 바로 보이게 펼침
     save(); render();
     return document.getElementById("own").focus(); // 이어서 더 적을 수 있게
   }
