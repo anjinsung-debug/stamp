@@ -88,7 +88,7 @@ function search(q) {
 
 // ---------- 화면 ----------
 // 로고를 누르면 여행 로드맵(메인 화면)으로
-const mark = `<h1 class="mark"><button class="home" data-tab="stamps" aria-label="STAMP, 여행 로드맵으로 가기">STAMP<span>혼자 떠나는 첫 해외여행 가이드</span></button></h1>`;
+const mark = `<h1 class="mark"><button class="home" data-tab="stamps" aria-label="STAMP, 여행 로드맵으로 가기"><i class="seal">S</i><span>STAMP<small>혼자 떠나는 첫 해외여행 가이드</small></span></button></h1>`;
 
 function render() {
   if (!state.trip) return renderSetup();
@@ -110,12 +110,18 @@ const resetView = () => `<div class="sheet"><h2>여행지를 바꿀까요?</h2>
 
 function renderSetup() {
   const opts = Object.entries(D.countries).map(([k, c]) => `<option value="${k}">${c.name}</option>`).join("");
-  app.innerHTML = `<div class="narrow" style="max-width:440px;margin:24px auto 0">
-    <div class="cover"><div class="emblem">STAMP</div><h1>첫 여권</h1><p>처음이면 다들 헷갈려요. 하나씩 같이 준비해요.</p></div>
-    <div class="sheet">
-      <label for="c">어디로 가나요?</label><select id="c">${opts}</select>
-      <label for="d">언제 출발하나요?</label><input id="d" type="date" required>
-      <p style="margin-top:16px"><button class="full" data-act="start">여권 만들기</button></p>
+  const ico = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  app.innerHTML = `<div class="setup">
+    <section class="hero">
+      <div class="brand"><span class="seal">S</span>STAMP</div>
+      <p class="badge">처음 떠나는 해외여행 가이드</p>
+      <h1>첫 해외여행,<br><em>하나씩 같이.</em></h1>
+      <p class="lead">처음이면 다들 헷갈려요. 여권부터 공항까지 순서대로 챙겨 드릴게요.</p>
+    </section>
+    <div class="search">
+      <label class="fld">${ico('<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>')}<span><b>어디로 가나요?</b><select id="c">${opts}</select></span></label>
+      <label class="fld">${ico('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>')}<span><b>언제 출발하나요?</b><input id="d" type="date" required></span></label>
+      <button class="go" data-act="start">여권 만들기</button>
     </div></div>`;
 }
 
