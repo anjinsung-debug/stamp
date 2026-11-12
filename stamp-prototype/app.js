@@ -305,31 +305,41 @@ function itemsView() {
   const banned = new Set(country().rules.filter((r) => r.level === "banned").flatMap((r) => r.items));
   const chips = (list) => `<div class="chips">${list.map((i) => `<button data-item="${i.id}">${esc(i.name)}${banned.has(i.id)
     ? `<span class="ban">${country().name} 금지</span>` : ""}</button>`).join("")}</div>`;
-  // 카테고리는 접어 두고 눌러서 펼침 (펼친 상태는 다시 그려도 유지: view.open)
-  const grouped = `<div class="groups">${D.groups.map((g) => {
-    const nBan = g.items.filter((id) => banned.has(id)).length;
-    return `<details class="grp" data-grp="${g.id}" ${view.open?.includes(g.id) ? "open" : ""}><summary>${gicon(g.icon)}<span class="gname">${g.name}</span>
-      <span class="gmeta">${g.items.length}개${nBan ? ` · <em>${country().name} 금지 ${nBan}</em>` : ""}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>${chips(g.items.map(itemById))}</details>`;
-  }).join("")}</div>`;
   // 찾기 결과: 찾은 물건에 걸리는 여행 국가 반입 주의(입국 금지·신고·참고)를 바로 아래에
   const c = country();
   const hitRules = c.rules.filter((r) => r.items.some((id) => hits.some((h) => h.id === id)));
   const notes = hitRules.map((r) =>
     `<div class="note lv-${r.level}"><b>${c.name} ${LEVEL[r.level]} · ${r.items.map((id) => esc(itemById(id).name)).join(", ")}</b>${r.message}</div>`).join("");
-  const list = !view.query ? grouped
-    : hits.length ? chips(hits) + notes
+  const found = hits.length ? chips(hits) + notes
     : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요. 공식 안내에서 확인하세요.</p>${D.fallbackLinks.map(srcLink).join("")}`;
-  // 단계 화면(짐 싸기 등)에서 들어왔을 때만, 목록 아래에 그 단계로 돌아가는 버튼
+  // 사진이 먼저, 그 아래 이름으로 찾기 (적는 동안 비슷한 물건이 자동완성으로 뜸)
+  const byName = `<div class="by-name"><label for="q">이름으로 찾기</label>
+      <div class="row"><input id="q" enterkeyhint="search" autocomplete="off" placeholder="보조배터리, 육포, 감기약" value="${esc(view.query)}" aria-controls="q-suggest"><button class="ghost" data-act="search" style="flex:none">찾기</button></div>
+      <div id="q-suggest"></div>
+      ${view.query ? `${found}<p class="footnote"><button class="link" data-act="q-clear">지우고 다시 찾기</button></p>` : ""}</div>`;
+  const camera = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+  // 단계 화면(짐 싸기 등)에서 들어왔을 때만, 카드 아래에 그 단계로 돌아가는 버튼
   const back = D.steps.find((x) => x.id === view.from);
   const backLink = back ? `<p><button class="ghost full" data-step="${back.id}">← ${D.steps.indexOf(back) + 1}단계 ${back.title}${ro(back.title)} 돌아가기</button></p>` : "";
   return `<h2>물건 확인</h2><div class="sheet">
-      <label for="q">가져갈 물건 이름</label>
-      <div class="row"><input id="q" enterkeyhint="search" placeholder="보조배터리, 육포, 감기약" value="${esc(view.query)}"><button data-act="search" style="flex:none">찾기</button></div>
-      <label class="photo-btn">사진으로 확인하기<input type="file" id="photo" accept="image/*"></label>
+      <label class="photo-btn">${camera}사진으로 확인하기<input type="file" id="photo" accept="image/*"></label>
+      <p class="footnote" style="text-align:center">물건을 찍으면 AI가 무슨 물건인지 골라 주고, 규정표로 판정해요.</p>
       ${photoView()}
-      ${view.photo ? "" : list}</div>
+      ${view.photo ? "" : byName}</div>
     ${backLink}
     ${hitRules.length && !view.photo ? rulesFoot(hitRules) : ""}`;
+}
+
+// 자동완성: 이름이나 다른 이름(aliases)에 적은 글자가 들어 있는 물건, 최대 8개
+function suggestView(q) {
+  const n = q.replace(/\s/g, "");
+  if (!n) return "";
+  const has = (w) => w.replace(/\s/g, "").includes(n);
+  const list = D.items.filter((i) => has(i.name) || i.aliases.some(has)).slice(0, 8);
+  if (!list.length) return `<p class="footnote" role="status">비슷한 물건이 없어요. 찾기를 누르면 공식 안내를 알려 드려요.</p>`;
+  const banned = new Set(country().rules.filter((r) => r.level === "banned").flatMap((r) => r.items));
+  return `<ul class="suggest" aria-label="비슷한 물건">${list.map((i) => `<li><button data-item="${i.id}">${esc(i.name)}${banned.has(i.id)
+    ? `<span class="ban">${country().name} 금지</span>` : ""}</button></li>`).join("")}</ul>`;
 }
 
 // 출처는 모든 화면에서 페이지 맨 아래 "출처 보기"에 모음 (같은 주소는 한 번만)
@@ -438,7 +448,7 @@ async function identifyPhoto(file) {
 function resultView() {
   const item = itemById(view.item);
   const r = judge(item, view.answers || {});
-  const back = `<p><button class="link" data-act="back">물건 목록으로</button></p>`;
+  const back = `<p><button class="ghost" data-act="back">← 다른 물건 확인하기</button></p>`;
   if (r.needs) {
     // 사진에서 용량 글자를 읽었으면 미리 채워 두고 사용자가 확인
     const cap = view.photo?.result?.capacity;
@@ -567,6 +577,7 @@ document.addEventListener("click", (e) => {
   const d = t.dataset;
   if (d.tab) Object.assign(view, { tab: d.tab, step: null, item: null, photo: null, from: d.from || null });
   if (d.act === "photo-clear") view.photo = null;
+  if (d.act === "q-clear") view.query = "";
   if (d.act === "manual-open") { view.photo.manual = {}; render(); return document.getElementById("mname").focus(); }
   if (d.act === "manual-check") return checkManual();
   if (d.act === "own-add") {
@@ -687,6 +698,11 @@ document.addEventListener("toggle", (e) => {
   e.target.open ? open.add(id) : open.delete(id);
   view.open = [...open];
 }, true);
+
+// 이름으로 찾기: 적을 때마다 자동완성 목록만 바꿈 (화면 전체를 다시 그리면 입력 중인 글자가 끊김)
+document.addEventListener("input", (e) => {
+  if (e.target.id === "q") document.getElementById("q-suggest").innerHTML = suggestView(e.target.value);
+});
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.id === "q") { Object.assign(view, { query: e.target.value.trim(), photo: null }); render(); }
