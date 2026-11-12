@@ -11,10 +11,10 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&family=Noto+Serif+KR:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* 팔레트: 짙은 초록 + 크림 + 형광 연두 (roam 시안) */
-    --cover: #173C32; --gold: #D8FF72; --page: #F4F0E8; --paper: #FFFDF8;
+    /* 팔레트: 여권 남색 + 크림 + 금색 (여권 표지 톤) */
+    --cover: #1C2E57; --gold: #E2C27A; --page: #F4F0E8; --paper: #FFFDF8;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1); /* 움직임 공통 곡선: 빠르게 시작해 부드럽게 멈춤 */
-    --ink: #173C32; --muted: #61726C; --line: #DCD5C7;
+    --ink: #1C2E57; --muted: #5E6B80; --line: #DCD5C7;
     --serif: "DM Serif Display", "Noto Serif KR", serif;
     --violet: #5B3FA8; --green: #2E7D4F; --red: #C0323A; --amber: #9A5B12; --blue: #2D5B9A;
   }
@@ -30,8 +30,8 @@
     background-color: var(--page);
     /* 사증 면 보안 무늬 */
     background-image:
-      repeating-radial-gradient(circle at 0 0, transparent 0 18px, rgb(23 60 50 / .06) 18px 19px),
-      repeating-radial-gradient(circle at 100% 100%, transparent 0 18px, rgb(214 108 69 / .06) 18px 19px);
+      repeating-radial-gradient(circle at 0 0, transparent 0 18px, rgb(28 46 87 / .06) 18px 19px),
+      repeating-radial-gradient(circle at 100% 100%, transparent 0 18px, rgb(194 162 90 / .06) 18px 19px);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
   }
@@ -42,11 +42,10 @@
   :focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
 
   header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .mark { font-family: inherit; font-weight: 700; font-size: 17px; letter-spacing: .18em; color: var(--cover); }
-  .mark small { display: block; font-size: 12px; letter-spacing: 0; font-weight: 400; color: var(--muted); }
+  /* 로고 글자: 제목과 같은 DM Serif Display, 아래 한글 설명은 본문 글꼴 */
+  .mark { font: 400 26px/1.05 "DM Serif Display", serif; letter-spacing: .04em; color: var(--cover); }
+  .mark small { display: block; margin-top: 2px; font: 400 12px/1.4 "DM Sans", "IBM Plex Sans KR", sans-serif; letter-spacing: 0; color: var(--muted); }
   .mark .home { all: unset; display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 999px; transition: scale 120ms var(--ease-out); }
-  .seal { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--gold); color: var(--cover); font: 400 18px/1 var(--serif); font-style: normal; letter-spacing: 0; }
-  .mark .seal { background: var(--cover); color: var(--gold); }
   .mark .home:active { scale: .97; }
   .mark .home:focus-visible { outline: 3px solid var(--violet); outline-offset: 4px; }
   h2 { font-size: 21px; margin: 28px 0 12px; }
@@ -55,8 +54,8 @@
 
   button { font: inherit; font-weight: 500; border: 0; border-radius: 999px; padding: 11px 20px; min-height: 44px; background: var(--cover); color: #fff; cursor: pointer; transition: scale 120ms var(--ease-out), border-color 150ms ease; }
   button:active:not(:disabled) { scale: .97; }
-  button.ghost { background: transparent; color: var(--cover); border: 1px solid rgb(23 60 50 / .15); padding: 8px 16px; }
-  @media (hover: hover) and (pointer: fine) { button.ghost:hover { border-color: rgb(23 60 50 / .45); } }
+  button.ghost { background: transparent; color: var(--cover); border: 1px solid rgb(28 46 87 / .15); padding: 8px 16px; }
+  @media (hover: hover) and (pointer: fine) { button.ghost:hover { border-color: rgb(28 46 87 / .45); } }
   button.link { background: none; color: var(--blue); padding: 0 4px; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; }
   button:disabled { opacity: .55; cursor: not-allowed; }
   .full { width: 100%; }
@@ -68,9 +67,9 @@
 
   /* 종이 서식 */
   /* 종이가 살짝 떠 있는 느낌: 테두리 대신 겹친 투명 그림자 */
-  .sheet, .datapage, .visa { box-shadow: 0 0 0 1px rgb(23 60 50 / .06), 0 12px 32px rgb(23 60 50 / .07); }
+  .sheet, .datapage, .visa { box-shadow: 0 0 0 1px rgb(28 46 87 / .06), 0 12px 32px rgb(28 46 87 / .07); }
   .sheet { background: var(--paper); border-radius: 28px; padding: 20px; margin-bottom: 14px; }
-  .now-tag { margin-left: 6px; padding: 2px 9px; border-radius: 999px; background: var(--gold); color: var(--cover); font-size: 12px; font-weight: 700; }
+  .now-tag { margin-left: 6px; padding: 2px 9px; border-radius: 999px; background: rgb(28 46 87 / .08); color: var(--cover); font-size: 12px; font-weight: 700; }
   .sample { font-size: 12px; color: var(--amber); font-weight: 500; }
   .src { font-size: 12px; color: var(--muted); margin-top: 6px; }
   .src a { color: var(--muted); }
@@ -78,21 +77,20 @@
   .err { color: var(--red); font-size: 13px; margin: 6px 0 0; }
   [aria-invalid="true"] { border-color: var(--red); }
 
-  /* 시작 화면: 짙은 초록 히어로 + 겹쳐 올라온 크림색 입력 카드 (roam 시안) */
+  /* 시작 화면: 여권 남색 히어로 + 겹쳐 올라온 크림색 입력 카드 (roam 시안) */
   .setup { max-width: 560px; margin: 8px auto 0; }
   .hero { position: relative; overflow: hidden; border-radius: 32px; padding: 20px 24px 116px; color: #fff; text-align: center; word-break: keep-all;
     background-color: var(--cover);
-    /* 여권 보안 무늬를 은은하게 + 오른쪽 위 연두빛 */
+    /* 여권 보안 무늬를 은은하게 + 오른쪽 위 금빛 */
     background-image:
-      radial-gradient(circle at 85% 0%, rgb(216 255 114 / .18), transparent 55%),
+      radial-gradient(circle at 85% 0%, rgb(226 194 122 / .18), transparent 55%),
       repeating-radial-gradient(circle at 50% 120%, transparent 0 15px, rgb(255 255 255 / .05) 15px 16px); }
-  .hero .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: .18em; text-align: left; }
-  .hero .seal { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--gold); color: var(--cover); font-family: var(--serif); font-size: 18px; letter-spacing: 0; }
+  .hero .brand { display: flex; align-items: center; gap: 10px; font: 400 22px/1 "DM Serif Display", serif; letter-spacing: .04em; text-align: left; }
   .hero .badge { display: inline-block; margin: 52px 0 18px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgb(255 255 255 / .25); background: rgb(255 255 255 / .08); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
   .hero h1 { margin: 0; font-size: clamp(38px, 10.5vw, 60px); line-height: 1.08; letter-spacing: -.03em; font-weight: 700; }
   .hero h1 em { font-style: normal; color: var(--gold); }
   .hero .lead { max-width: 28ch; margin: 18px auto 0; color: rgb(255 255 255 / .75); font-size: 15px; }
-  .search { position: relative; display: grid; gap: 2px; margin: -80px 12px 0; padding: 8px; border-radius: 28px; background: var(--paper); box-shadow: 0 24px 60px rgb(23 60 50 / .22); }
+  .search { position: relative; display: grid; gap: 2px; margin: -80px 12px 0; padding: 8px; border-radius: 28px; background: var(--paper); box-shadow: 0 24px 60px rgb(28 46 87 / .22); }
   .search .fld { display: flex; align-items: center; gap: 12px; margin: 0; padding: 10px 14px; border-radius: 20px; color: var(--ink); font-size: 15px; cursor: pointer; transition: background-color 150ms ease; }
   .search .fld svg { width: 21px; height: 21px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .search .fld > span { flex: 1; min-width: 0; }
@@ -101,7 +99,7 @@
   .search select:focus-visible, .search input:focus-visible { outline: none; }
   .search .fld:focus-within { box-shadow: inset 0 0 0 2px var(--violet); }
   .search .go { min-height: 56px; margin-top: 4px; border-radius: 999px; background: var(--gold); color: var(--cover); font-weight: 700; transition: scale 120ms var(--ease-out), background-color 150ms ease; }
-  @media (hover: hover) and (pointer: fine) { .search .fld:hover { background: #F1EEE6; } .search .go:hover { background: #C4EF58; } }
+  @media (hover: hover) and (pointer: fine) { .search .fld:hover { background: #F1EEE6; } .search .go:hover { background: #D2AE5C; } }
   @media (min-width: 760px) {
     .setup { max-width: 860px; margin-top: 16px; }
     .hero { padding: 24px 40px 128px; }
@@ -113,7 +111,7 @@
 
   /* 여권 정보 면 (로드맵 상단) */
   .datapage { position: relative; background-color: var(--cover); color: #fff; border-radius: 28px; overflow: hidden; margin-bottom: 8px;
-    background-image: radial-gradient(circle at 90% 0%, rgb(216 255 114 / .16), transparent 55%); }
+    background-image: radial-gradient(circle at 90% 0%, rgb(226 194 122 / .16), transparent 55%); }
   .datapage .fields { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 22px 22px 16px; }
   .field small { display: block; font-size: 12px; color: var(--muted); }
   .datapage .field small, .datapage .dday small { color: rgb(255 255 255 / .6); }
@@ -136,14 +134,15 @@
   .count span { font-size: 16px; color: var(--muted); margin-left: 4px; }
   /* 도장 문양: 모으기 전엔 흐릿하게, 모으면 잉크색 */
   .ico { display: block; width: 40px; height: 40px; margin: 0 auto 6px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: .35; }
-  .slot.now .ico { opacity: .8; }
+  .slot.now .ico { opacity: 1; }
   .slot.done .ico { opacity: 1; stroke-width: 1.6; }
   .slot { position: relative; aspect-ratio: 1 / .82; display: grid; place-items: center; text-align: center; padding: 10px; cursor: pointer; background: none; color: var(--muted); border: 2px dashed var(--line); border-radius: 50%; font-size: 13px; line-height: 1.35; }
   .slot.shape-1 { border-radius: 12px; }
   .slot.shape-2 { border-radius: 50% / 38%; }
   .slot .no { font-size: 12px; }
   .slot .t { display: block; font-weight: 700; font-size: 15px; color: var(--ink); }
-  .slot.now { border: 2px solid var(--cover); color: var(--cover); background: var(--gold); }
+  /* 지금 할 칸: 연한 남색 바탕 + 남색 실선 (다른 칸과 같은 톤으로 은은하게) */
+  .slot.now { border: 2px solid var(--cover); color: var(--cover); background: #E6ECF8; }
   .slot.now .t { color: var(--cover); }
   .slot.done { border: 4px double var(--ink-c); color: var(--ink-c); transform: rotate(var(--tilt)); background: none; mix-blend-mode: multiply; }
   .slot.done .t { color: var(--ink-c); letter-spacing: .04em; }
@@ -179,7 +178,7 @@
   .mistakes ul { margin: 6px 0 2px; padding-left: 20px; }
   /* 6단계: 물건 확인으로 가는 카드형 버튼 */
   .go-items { display: flex; align-items: center; gap: 12px; width: 100%; margin: 14px 0 12px; padding: 14px 16px; text-align: left; border-radius: 24px;
-    background: linear-gradient(135deg, var(--cover), #24564A); box-shadow: 0 6px 16px rgb(23 60 50 / .22); }
+    background: linear-gradient(135deg, var(--cover), #2B4277); box-shadow: 0 6px 16px rgb(28 46 87 / .22); }
   .go-items .gi-ico { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 50%; background: rgb(255 255 255 / .14); }
   .go-items svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .go-items .gi-txt { flex: 1; min-width: 0; }
@@ -197,7 +196,7 @@
   .photo-btn { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: 8px 0 0; border: 1px dashed var(--cover); border-radius: 999px; color: var(--cover); font-size: 15px; font-weight: 500; cursor: pointer; }
   .photo-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .photo-btn:focus-within { outline: 3px solid var(--violet); outline-offset: 2px; }
-  @media (hover: hover) and (pointer: fine) { .photo-btn:hover { background: rgb(23 60 50 / .04); } }
+  @media (hover: hover) and (pointer: fine) { .photo-btn:hover { background: rgb(28 46 87 / .04); } }
   .photo-msg { margin: 14px 0 0; font-weight: 700; }
   .manual { margin-top: 16px; padding-top: 12px; border-top: 1px dotted var(--line); }
   .manual h3 { margin: 0; font-size: 15px; color: var(--cover); }
@@ -220,7 +219,7 @@
   .grp .chips { margin: 0 0 14px; }
   .gico { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .chips .ban { margin-left: 6px; padding: 0 5px; border: 1.5px solid currentColor; border-radius: 4px; color: var(--red); font-size: 11px; font-weight: 700; vertical-align: 1px; }
-  .chips button { background: var(--paper); color: var(--cover); border: 1px solid rgb(23 60 50 / .15); padding: 10px 16px; font-size: 14px; }
+  .chips button { background: var(--paper); color: var(--cover); border: 1px solid rgb(28 46 87 / .15); padding: 10px 16px; font-size: 14px; }
   .verdict { display: inline-block; margin: 6px 0 12px; padding: 8px 16px; border: 4px double currentColor; border-radius: 8px; font-weight: 700; font-size: 18px; transform: rotate(-2deg); transition: opacity 240ms var(--ease-out), scale 240ms var(--ease-out); }
   /* 판정 도장이 살짝 크게 나타났다가 쿵 찍히듯 자리잡음 */
   @starting-style { .verdict { opacity: 0; scale: 1.08; } }
@@ -228,7 +227,7 @@
   .verdict small { display: block; font-size: 13px; font-weight: 500; }
   .banner { background: var(--red); color: #fff; padding: 10px 14px; border-radius: 4px; font-weight: 700; margin-bottom: 12px; }
   /* 판정 탑승권: 절취선 양끝을 반원으로 따냄 */
-  .pass { background: var(--paper); border-radius: 28px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 0 0 1px rgb(23 60 50 / .09), 0 1px 2px rgb(23 60 50 / .06), 0 8px 20px rgb(23 60 50 / .07); }
+  .pass { background: var(--paper); border-radius: 28px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 0 0 1px rgb(28 46 87 / .09), 0 1px 2px rgb(28 46 87 / .06), 0 8px 20px rgb(28 46 87 / .07); }
   .pass .banner { border-radius: 0; margin: 0; }
   .pass-top { padding: 18px 18px 16px; }
   .pass-top h2 { margin: 0 0 14px; font-size: 26px; }
@@ -293,7 +292,7 @@
   .menu summary::after { content: ""; position: absolute; inset: -4px; } /* 보이는 크기는 36px, 누르는 영역은 44px 유지 */
   .menu summary::-webkit-details-marker { display: none; }
   .menu summary svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  .menu nav { position: absolute; top: 44px; left: 0; z-index: 10; min-width: 200px; display: flex; flex-direction: column; padding: 8px; background: var(--cover); border-radius: 22px; box-shadow: 0 8px 24px rgb(23 60 50 / .25); transform-origin: top left; transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); }
+  .menu nav { position: absolute; top: 44px; left: 0; z-index: 10; min-width: 200px; display: flex; flex-direction: column; padding: 8px; background: var(--cover); border-radius: 22px; box-shadow: 0 0 0 1px rgb(255 255 255 / .14), 0 8px 24px rgb(28 46 87 / .3); transform-origin: top left; transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); }
   /* 메뉴는 왼쪽 위 버튼에서 펼쳐짐 */
   @starting-style { .menu[open] nav { opacity: 0; transform: translateY(-4px) scale(.97); } }
   .menu nav button { background: none; color: rgb(255 255 255 / .82); text-align: left; border-radius: 14px; }
@@ -309,7 +308,7 @@
 
   /* 단계 이전·다음 */
   .pager { display: flex; justify-content: space-between; gap: 8px; }
-  .pager button { flex: 0 1 48%; background: var(--paper); color: var(--cover); border-radius: 22px; padding: 12px 18px; text-align: left; font-weight: 700; box-shadow: 0 0 0 1px rgb(23 60 50 / .08); }
+  .pager button { flex: 0 1 48%; background: var(--paper); color: var(--cover); border-radius: 22px; padding: 12px 18px; text-align: left; font-weight: 700; box-shadow: 0 0 0 1px rgb(28 46 87 / .08); }
   .pager .next { text-align: right; }
   .pager small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
 
@@ -362,14 +361,15 @@
   .stampfx .ico { width: 52px; height: 52px; opacity: 1; stroke-width: 1.6; }
   .stampfx small { display: block; font-size: 14px; letter-spacing: 0; font-weight: 500; }
   @keyframes slam { from { transform: rotate(-10deg) scale(2.4); opacity: 0; } to { transform: rotate(-10deg) scale(1); opacity: 1; } }
-  /* 화면 전환: 이전 화면은 빠르게 사라지고 새 화면은 살짝 올라오며 나타남 */
+  /* 화면 전환: 이전 화면은 바로 사라지고 새 화면은 살짝 올라오며 나타남 */
   /* 머리글(로고·메뉴)은 전환 효과 없이 바로 제자리에: 미끄러지거나 흐려지지 않게 */
-  header { view-transition-name: header; }
+  /* view-transition-name이 header를 따로 쌓이게 만들어서, 순서상 뒤에 오는 여권 카드가 펼친 메뉴를 덮지 않게 위로 올림 */
+  header { view-transition-name: header; position: relative; z-index: 20; }
   ::view-transition-group(header), ::view-transition-new(header) { animation: none; }
   ::view-transition-old(header) { display: none; }
-  ::view-transition-old(root) { animation: vt-out 180ms var(--ease-out) both; }
+  /* 이전 화면은 바로 감춤: 겹쳐서 흐려지면 이전 내용(남색 여권 카드 등)이 새 화면 밑에 비쳐 보임 */
+  ::view-transition-old(root) { display: none; }
   ::view-transition-new(root) { animation: vt-in 340ms var(--ease-out) both; }
-  @keyframes vt-out { to { opacity: 0; } }
   @keyframes vt-in { from { opacity: 0; transform: translateY(12px); } }
   @media (prefers-reduced-motion: reduce) {
     .stampfx div { animation: none; }

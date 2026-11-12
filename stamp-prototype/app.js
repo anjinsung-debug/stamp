@@ -88,7 +88,7 @@ function search(q) {
 
 // ---------- 화면 ----------
 // 로고를 누르면 여행 로드맵(메인 화면)으로
-const mark = `<h1 class="mark"><button class="home" data-tab="stamps" aria-label="STAMP, 여행 로드맵으로 가기"><i class="seal">S</i><span>STAMP<small>혼자 떠나는 첫 해외여행 가이드</small></span></button></h1>`;
+const mark = `<h1 class="mark"><button class="home" data-tab="stamps" aria-label="STAMP, 여행 로드맵으로 가기"><span>STAMP<small>혼자 떠나는 첫 해외여행 가이드</small></span></button></h1>`;
 
 function render() {
   if (!state.trip) return renderSetup();
@@ -113,7 +113,7 @@ function renderSetup() {
   const ico = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   app.innerHTML = `<div class="setup">
     <section class="hero">
-      <div class="brand"><span class="seal">S</span>STAMP</div>
+      <div class="brand">STAMP</div>
       <p class="badge">처음 떠나는 해외여행 가이드</p>
       <h1>첫 해외여행,<br><em>하나씩 같이.</em></h1>
       <p class="lead">처음이면 다들 헷갈려요. 여권부터 공항까지 순서대로 챙겨 드릴게요.</p>
@@ -625,8 +625,9 @@ document.addEventListener("click", (e) => {
 
 // View Transitions를 지원하는 브라우저에서만 화면 전환 효과, 아니면 바로 바꿈 (움직임은 index.html CSS)
 function swap(update) {
-  if (!document.startViewTransition) return update();
-  document.startViewTransition(update);
+  if (!document.startViewTransition || document.hidden) return update();
+  // 전환이 중간에 취소돼도(다른 탭으로 가는 등) 화면은 바뀜, 콘솔 오류만 막음
+  document.startViewTransition(update).ready.catch(() => {});
 }
 
 document.addEventListener("change", (e) => {
