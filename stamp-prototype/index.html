@@ -8,14 +8,15 @@
 <title>STAMP 프로토타입</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&family=Noto+Serif+KR:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
     /* 팔레트: 여권 남색 + 크림 + 금색 (여권 표지 톤) */
     --cover: #1C2E57; --gold: #E2C27A; --page: #F4F0E8; --paper: #FFFDF8;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1); /* 움직임 공통 곡선: 빠르게 시작해 부드럽게 멈춤 */
     --ink: #1C2E57; --muted: #5E6B80; --line: #DCD5C7;
-    --serif: "DM Serif Display", "Noto Serif KR", serif;
+    /* 제목: 영문·숫자는 DM Serif Display, 한글은 본문과 같은 IBM Plex Sans KR */
+    --serif: "DM Serif Display", "IBM Plex Sans KR", serif;
     --violet: #5B3FA8; --green: #2E7D4F; --red: #C0323A; --amber: #9A5B12; --blue: #2D5B9A;
   }
   * { box-sizing: border-box; }
@@ -35,7 +36,7 @@
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3 { text-wrap: balance; font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; }
+  h1, h2, h3 { text-wrap: balance; font-family: var(--serif); font-weight: 700; letter-spacing: -.01em; }
   p, li, .note { text-wrap: pretty; }
   .dday b, .field b, .calls b, .progress, .slot { font-variant-numeric: tabular-nums; }
   .wrap { max-width: 520px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
