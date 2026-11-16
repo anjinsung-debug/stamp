@@ -641,6 +641,8 @@ function stampFx(s) {
   el.setAttribute("role", "status");
   el.innerHTML = `<div>${icon(s.id)}STAMP<small>${esc(s.title)} 완료</small></div>`;
   document.body.appendChild(el);
+  // 도장과 컨페티는 같은 시각(1.1초)부터 같이 흐려져 1.5초에 함께 사라짐
+  const HIT = 280, FADE = 1100, END = 1500;
   // 도장이 찍히는 순간(0.3초) 작은 도장·종잇조각이 사방으로 튀었다가 떨어짐. 움직임 줄이기 설정이면 생략
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
     const colors = [...INKS, "var(--gold)"];
@@ -652,12 +654,13 @@ function stampFx(s) {
       b.animate([
         { transform: "translate(-50%, -50%) scale(.2)", opacity: 1 },
         { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${rot / 2}deg)`, opacity: 1, offset: .4 },
-        { transform: `translate(calc(-50% + ${x * 1.15}px), calc(-50% + ${y + 180}px)) rotate(${rot}deg)`, opacity: 0 },
-      ], { duration: 1000 + Math.random() * 300, delay: 280, easing: "cubic-bezier(.2, .7, .4, 1)" }); // 기다리는 동안과 끝난 뒤엔 CSS의 opacity: 0
+        { transform: `translate(calc(-50% + ${x * 1.15}px), calc(-50% + ${y + 180}px)) rotate(${rot}deg)`, opacity: 1 },
+      ], { duration: END - HIT, delay: HIT, easing: "cubic-bezier(.2, .7, .4, 1)" }); // 흐려지는 건 아래 전체 페이드가 맡음. 기다리는 동안엔 CSS의 opacity: 0
       el.appendChild(b);
     }
   }
-  setTimeout(() => el.remove(), 1600);
+  // 도장·배경·컨페티를 한꺼번에 흐리게 한 뒤 치움
+  el.animate([{ opacity: 1 }, { opacity: 0 }], { delay: FADE, duration: END - FADE, easing: "ease-in", fill: "forwards" }).finished.then(() => el.remove(), () => el.remove());
 }
 
 // ---------- 이벤트 ----------
