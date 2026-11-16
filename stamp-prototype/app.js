@@ -47,6 +47,14 @@ let view = { tab: "stamps", step: null, item: null, query: "" };
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
 }
+// 판정한 물건을 챙길 것의 "내가 추가한 것"에 넣음. 이미 있는 물건이면 용량 등 새로 고른 답으로 바꿈
+function addOwn(itemId, answers = {}) {
+  const item = itemById(itemId), list = (state.checklist_own ||= []);
+  const v = answers[item.rule?.field];
+  const x = { id: `own_${itemId}`, text: item.name + (v ? ` (${num(v)}${item.rule.unit})` : ""), item: itemId, answers };
+  const i = list.findIndex((o) => o.id === x.id);
+  i < 0 ? list.push(x) : (list[i] = x);
+}
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
 }
@@ -94,12 +102,17 @@ function render() {
   if (!state.trip) return renderSetup();
   const tabs = [["stamps", "여행 로드맵"], ["road", "지금 할 일"], ["items", "물건 확인"], ["bag", "가방"]]
     .map(([k, t]) => `<button class="${view.tab === k ? "on" : ""}" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${t}</button>`).join("");
-  // 왼쪽 위 메뉴: 화면이 다시 그려지면 자연스럽게 닫힘
+  // 사이드바: 휴대폰은 왼쪽 위 버튼으로 여는 서랍(다시 그려지면 닫힘), PC는 왼쪽에 늘 펼쳐 둠
+  const nav = `<nav class="navlist" aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav>`;
   const head = `<header><details class="menu"><summary aria-label="메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <nav aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav></details>${mark}</header>`;
+    ${nav}</details>${mark}</header>`;
   const body = view.tab === "reset" ? resetView() : view.tab === "road" ? roadView() : view.tab === "stamps" ? stampsView()
     : view.tab === "items" ? itemsView() : bagView();
-  app.innerHTML = head + `<div class="narrow">${body}</div>`;
+  // 큰 화면 사이드바 접기·펼치기 (접은 상태는 저장해 두고 다음에도 그대로)
+  const closed = !!state.side_closed;
+  const toggle = `<button class="side-toggle" data-act="side" aria-expanded="${!closed}" aria-label="사이드바 ${closed ? "펼치기" : "접기"}" title="사이드바 ${closed ? "펼치기" : "접기"}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="${closed ? "M13 10l2 2-2 2" : "M16 10l-2 2 2 2"}"/></svg></button>`;
+  app.innerHTML = head + `<div class="shell${closed ? " closed" : ""}"><aside class="side"><div class="side-head">${mark}${toggle}</div>${nav}</aside><div class="narrow">${body}</div></div>`;
 }
 
 // 브라우저 확인 창(confirm)은 앱 안 브라우저에서 안 뜨는 경우가 있어 화면 안에서 물어봄
@@ -120,9 +133,47 @@ function renderSetup() {
     </section>
     <div class="search">
       <label class="fld">${ico('<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>')}<span><b>어디로 가나요?</b><select id="c">${opts}</select></span></label>
-      <label class="fld">${ico('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>')}<span><b>언제 출발하나요?</b><input id="d" type="date" required></span></label>
+      <button type="button" class="fld" id="period-btn" data-act="cal" aria-expanded="false" aria-controls="cal">${ico('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>')}<span><b>여행 기간</b><span id="period-text">${pickText()}</span></span></button>
+      <dialog id="cal" class="cal" aria-label="여행 기간 고르기"></dialog>
       <button class="go" data-act="start">여권 만들기</button>
     </div></div>`;
+}
+
+// ---------- 여행 기간 달력 ----------
+// 가는 날 → 오는 날 순서로 누르면 그 사이가 이어서 칠해짐. 이미 둘 다 골랐으면 다시 가는 날부터
+let pick = { a: "", b: "", m: "" }; // m: 보이는 달 "YYYY-MM"
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const pickText = () => pick.b ? period(pick.a, pick.b) : pick.a ? `${dot(pick.a)} – 오는 날을 골라 주세요` : "날짜를 골라 주세요";
+
+function calView() {
+  const today = ymd(new Date());
+  const [y, m] = (pick.m || (pick.a || today).slice(0, 7)).split("-").map(Number);
+  const cells = Array(new Date(y, m - 1, 1).getDay()).fill("<span></span>");
+  for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) {
+    const s = ymd(new Date(y, m - 1, d));
+    const cls = [s === pick.a && (pick.b && pick.b !== s ? "start" : "one"), s === pick.b && s !== pick.a && "end",
+      pick.b && s > pick.a && s < pick.b && "in", s === today && "today"].filter(Boolean).join(" ");
+    cells.push(`<button type="button" class="${cls}" data-act="day" data-date="${s}" ${s < today ? "disabled" : ""}
+      aria-label="${m}월 ${d}일${s === pick.a ? ", 가는 날" : s === pick.b ? ", 오는 날" : ""}">${d}</button>`);
+  }
+  const hint = !pick.a ? "가는 날을 눌러 주세요" : !pick.b ? "오는 날을 눌러 주세요" : period(pick.a, pick.b);
+  const ym = `${y}-${String(m).padStart(2, "0")}`;
+  return `<div class="cal-head"><button type="button" data-act="cal-move" data-n="-1" aria-label="이전 달" ${ym <= today.slice(0, 7) ? "disabled" : ""}>‹</button>
+    <b data-ym="${ym}">${y}년 ${m}월</b><button type="button" data-act="cal-move" data-n="1" aria-label="다음 달">›</button></div>
+    <div class="cal-week" aria-hidden="true">${[..."일월화수목금토"].map((w) => `<span>${w}</span>`).join("")}</div>
+    <div class="cal-grid">${cells.join("")}</div>
+    <div class="cal-foot"><span role="status">${hint}</span><button type="button" data-act="cal" ${pick.b ? "" : "disabled"}>완료</button></div>`;
+}
+
+// 달력은 화면 가운데 창(dialog)으로. 달력과 버튼 글자만 바꿈 (시작 화면 전체를 다시 그리면 고른 나라가 처음으로 돌아감)
+function calUpdate(open, focusSel) {
+  const cal = document.getElementById("cal"), btn = document.getElementById("period-btn");
+  if (open && !cal.open) cal.showModal();
+  if (!open && cal.open) cal.close();
+  btn.setAttribute("aria-expanded", open);
+  document.getElementById("period-text").textContent = pickText();
+  if (pick.b) { btn.removeAttribute("aria-invalid"); document.getElementById("period-btn-err")?.remove(); }
+  if (open) { cal.innerHTML = calView(); cal.querySelector(focusSel || ".start, .one, .today, [data-act=day]:not(:disabled)")?.focus(); }
 }
 
 // 단계 할 일 + 나라별 할 일 (data.js countries[].todos), 글자만 있거나 { text, source }
@@ -145,6 +196,13 @@ function nowStep() {
 // 여권 화면에 보여 줄 단계: 이전/다음·도장으로 고른 단계, 없으면 지금 할 단계
 const currentStepId = () => view.step || nowStep()?.id;
 
+// "2026.12.10 – 12.15 · 5박" (예전에 출국일만 저장한 여행은 출국일만)
+function period(a = state.trip.departure_date, b = state.trip.return_date) {
+  if (!b) return dot(a);
+  const n = Math.round((new Date(b) - new Date(a)) / 86400000);
+  return `${dot(a)} – ${dot(b.slice(a.slice(0, 4) === b.slice(0, 4) ? 5 : 0))} · ${n ? `${n}박` : "당일"}`;
+}
+
 // 여권 정보 면 (목적지, 출국일, D-day): 여행 로드맵 맨 위
 function datapage() {
   const days = dday();
@@ -153,7 +211,7 @@ function datapage() {
       <div class="fields">
         <div class="field"><small>목적지</small><b>${country().name}</b></div>
         <div class="dday"><b>${dlabel}</b><small>${days >= 0 ? "출국까지" : "여행 중"}</small></div>
-        <div class="field"><small>출국일</small><b>${dot(state.trip.departure_date)}</b></div>
+        <div class="field"><small>여행 기간</small><b>${period()}</b></div>
       </div>
       <div class="mrz" aria-hidden="true">${esc(mrz(days))}</div>
     </div>`;
@@ -163,6 +221,22 @@ function datapage() {
 function roadView() {
   const id = currentStepId();
   return `${id ? stepView(id) : `<div class="sheet"><h2 style="margin-top:0">모든 단계를 끝냈어요</h2><p>도장을 모두 모았어요. 즐거운 여행 되세요.</p><button data-tab="stamps">여행 로드맵 보기</button></div>`}`;
+}
+
+// 진행 타임라인: 시작 날짜(D-60, D-45 …)별로 단계를 묶은 점 한 줄. 끝낸 점은 남색, 지금 할 점은 금색, 나머지는 회색
+function timeline() {
+  const now = nowStep();
+  const before = [...new Set(D.steps.filter((s) => !s.during).map((s) => s.start))]
+    .map((start) => ({ start, label: start ? `D-${start}` : "출국", steps: D.steps.filter((s) => !s.during && s.start === start) }));
+  const marks = [...before, { start: -1, label: "여행 중", steps: D.steps.filter((s) => s.during) }];
+  const nodes = marks.map((m) => {
+    const done = m.steps.every(stepDone), isNow = m.steps.includes(now);
+    const go = m.steps.find((s) => !stepDone(s)) || m.steps[0];
+    return `<li class="${done ? "done" : isNow ? "now" : ""}"><button data-step="${go.id}" aria-label="${m.label} ${m.steps.map((s) => s.title).join(", ")} · ${done ? "끝냄" : isNow ? "지금 할 일" : "아직"}">
+      <i aria-hidden="true"></i><b>${m.label}</b></button></li>`;
+  }).join("");
+  const tip = now ? `<p class="tl-now">지금 <b>${now.title}</b><small>${D.steps.filter(stepDone).length}/${D.steps.length}</small></p>` : "";
+  return `<section class="timeline" aria-label="진행 타임라인">${tip}<ol style="--n:${marks.length}">${nodes}</ol></section>`;
 }
 
 function stampsView() {
@@ -176,7 +250,7 @@ function stampsView() {
       : `<span>${icon(s.id)}<span class="t">${s.title}</span>${s === now ? "지금 할 일" : s.start > 0 ? `D-${s.start}부터` : "출국 당일부터"}</span>`;
     return `<button class="slot shape-${i % 3} ${isDone ? "done" : ""} ${s === now ? "now" : ""}" data-step="${s.id}" ${style} aria-label="${i + 1}단계 ${s.title}${isDone ? " 완료" : ""}">${inner}</button>`;
   }).join("");
-  return `${datapage()}
+  return `${datapage()}${timeline()}
     <section class="visa" aria-labelledby="col-title">
       <div class="col-head">
         <h2 id="col-title">여행 로드맵</h2>
@@ -310,24 +384,40 @@ function itemsView() {
   const hitRules = c.rules.filter((r) => r.items.some((id) => hits.some((h) => h.id === id)));
   const notes = hitRules.map((r) =>
     `<div class="note lv-${r.level}"><b>${c.name} ${LEVEL[r.level]} · ${r.items.map((id) => esc(itemById(id).name)).join(", ")}</b>${r.message}</div>`).join("");
+  const rel = related(view.query);
   const found = hits.length ? chips(hits) + notes
-    : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요. 공식 안내에서 확인하세요.</p>${D.fallbackLinks.map(srcLink).join("")}`;
+    : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요.${rel.length ? " 혹시 이걸 찾으셨나요?" : " 공식 안내에서 확인하세요."}</p>
+      ${rel.length ? `<div class="chips" aria-label="연관 검색어">${rel.map((w) => `<button data-act="search" data-q="${esc(w)}">${esc(w)}</button>`).join("")}</div>` : ""}
+      ${D.fallbackLinks.map(srcLink).join("")}`;
   // 사진이 먼저, 그 아래 이름으로 찾기 (적는 동안 비슷한 물건이 자동완성으로 뜸)
   const byName = `<div class="by-name"><label for="q">이름으로 찾기</label>
       <div class="row"><input id="q" enterkeyhint="search" autocomplete="off" placeholder="보조배터리, 육포, 감기약" value="${esc(view.query)}" aria-controls="q-suggest"><button class="ghost" data-act="search" style="flex:none">찾기</button></div>
       <div id="q-suggest"></div>
       ${view.query ? `${found}<p class="footnote"><button class="link" data-act="q-clear">지우고 다시 찾기</button></p>` : ""}</div>`;
   const camera = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+  const album = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M5 18l5-5 4 4 2-2 3 3"/></svg>`;
   // 단계 화면(짐 싸기 등)에서 들어왔을 때만, 카드 아래에 그 단계로 돌아가는 버튼
   const back = D.steps.find((x) => x.id === view.from);
   const backLink = back ? `<p><button class="ghost full" data-step="${back.id}">← ${D.steps.indexOf(back) + 1}단계 ${back.title}${ro(back.title)} 돌아가기</button></p>` : "";
   return `<h2>물건 확인</h2><div class="sheet">
-      <label class="photo-btn">${camera}사진으로 확인하기<input type="file" id="photo" accept="image/*"></label>
-      <p class="footnote" style="text-align:center">물건을 찍으면 AI가 무슨 물건인지 골라 주고, 규정표로 판정해요.</p>
+      <label class="photo-btn">${camera}카메라로 찍기<input type="file" id="photo" accept="image/*" capture="environment"></label>
+      <label class="photo-btn ghost">${album}앨범에서 고르기<input type="file" id="photo-pick" accept="image/*"></label>
+      <p class="footnote" style="text-align:center">찍기는 처음 한 번 카메라 권한을 물어요. 앨범은 고른 사진 한 장만 보내서 앨범 전체 권한이 필요 없어요.<br>AI가 무슨 물건인지 골라 주고, 규정표로 판정해요.</p>
       ${photoView()}
       ${view.photo ? "" : byName}</div>
     ${backLink}
     ${hitRules.length && !view.photo ? rulesFoot(hitRules) : ""}`;
+}
+
+// 연관 검색어: 찾은 물건이 없을 때, 적은 글자를 가장 많이 품은 다른 이름(aliases), 물건마다 하나씩 최대 4개
+// ponytail: 글자 겹침만 봄 (오타·맞춤법 정도), 뜻이 비슷한 말까지 원하면 AI 식별(/api/identify)로
+function related(q) {
+  const chars = [...new Set(q.replace(/\s/g, ""))];
+  // [다른 이름, 겹친 글자 수, 그 이름에서 겹친 비율]: 가장 많이 겹친 것만, 짧고 꽉 맞는 이름 먼저
+  const best = D.items.map((i) => i.aliases.map((a) => { const k = chars.filter((c) => a.includes(c)).length; return [a, k, k / a.length]; })
+    .sort((x, y) => y[1] - x[1] || y[2] - x[2])[0]).filter((x) => x && x[1] > 0);
+  const top = Math.max(...best.map((x) => x[1]));
+  return best.filter((x) => x[1] === top).sort((x, y) => y[2] - x[2]).slice(0, 4).map((x) => x[0]);
 }
 
 // 자동완성: 이름이나 다른 이름(aliases)에 적은 글자가 들어 있는 물건, 최대 8개
@@ -500,7 +590,8 @@ function checklist() {
     ({ id: `${state.trip.country}_no_${id}`, cat: `${c.name} 주의`, text: `${itemById(id).name} 넣지 않기`, item: id })));
   if (c.info.adapter) extra.unshift({ id: `${state.trip.country}_adapter`, cat: `${c.name} 주의`, text: `여행용 어댑터 (${c.info.plug.split(" — ")[0]})` });
   // 내가 직접 적은 물건: 이름이 규정표 물건과 맞으면 규정 보기도 붙임
-  const own = (state.checklist_own || []).map((x) => ({ ...x, cat: "내가 추가한 것", own: true, item: search(x.text)[0]?.id }));
+  const own = (state.checklist_own || []).map((x) => ({ ...x, cat: "내가 추가한 것", own: true, item: x.item || search(x.text)[0]?.id,
+    verdict: x.answers && judge(itemById(x.item), x.answers).bucket }));
   return [...D.checklist, ...extra, ...own];
 }
 
@@ -517,7 +608,8 @@ function checklistView() {
       return `<details class="grp" data-grp="ck-${esc(cat)}" ${view.open?.includes(`ck-${cat}`) ? "open" : ""}><summary><span class="gname">${esc(cat)}</span>
       <span class="gmeta">${k === items.length ? "다 챙김" : `${k} / ${items.length}`}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <ul class="todos">${items.map((x) =>
-      `<li><label><input type="checkbox" data-check="${x.id}" ${done.includes(x.id) ? "checked" : ""}>${esc(x.text)}</label>${x.item
+      `<li><label><input type="checkbox" data-check="${x.id}" ${done.includes(x.id) ? "checked" : ""}><span>${esc(x.text)}${x.verdict
+        ? `<small class="vtag v-${x.verdict}">${BUCKET[x.verdict]}</small>` : ""}</span></label>${x.item
         ? `<button class="link" data-tab="items" data-item="${x.item}">규정 보기</button>` : ""}${x.own
         ? `<button class="link del" data-act="own-del" data-own="${x.id}" aria-label="${esc(x.text)} 지우기">지우기</button>` : ""}</li>`).join("")}</ul></details>`;
     }).join("")}</div>
@@ -525,22 +617,12 @@ function checklistView() {
 }
 
 function bagView() {
-  const bag = state.bag || [];
   const head = `<h2>가방 <span class="muted">${country().name} 기준</span></h2>${checklistView()}`;
   // 출처: 챙길 것(규정 보기 붙은 물건·나라 주의)과 판정한 물건의 근거를 맨 아래에 모음
   const c = country();
-  const ids = new Set([...checklist().map((x) => x.item), ...bag.map((b) => b.item_id)].filter(Boolean));
+  const ids = new Set(checklist().map((x) => x.item).filter(Boolean));
   const foot = sourcesFoot([[...ids].map((id) => itemById(id).sources), c.rules.filter((r) => r.items.some((id) => ids.has(id))).map((r) => r.source), c.info.adapter ? c.info.source : null]);
-  if (!bag.length) return `${head}<div class="sheet"><h3>판정한 물건</h3><p>아직 담은 물건이 없어요.</p><button data-tab="items">물건 확인하기</button></div>${foot}`;
-  const groups = {};
-  bag.forEach((b, idx) => {
-    const item = itemById(b.item_id);
-    (groups[judge(item, b.answers).bucket] ||= []).push({ item, b, idx });
-  });
-  return head + Object.keys(BUCKET).filter((k) => groups[k]).map((k) =>
-    `<section class="sheet group tag t-${k}"><h3>${BUCKET[k]}</h3><ul>${groups[k].map(({ item, b, idx }) =>
-      `<li><span>${esc(item.name)}${b.answers?.[item.rule?.field] ? ` (${num(b.answers[item.rule.field])}${item.rule.unit})` : ""}</span>
-       <button class="link" data-del="${idx}">빼기</button></li>`).join("")}</ul></section>`).join("") + foot;
+  return head + foot;
 }
 
 // 입력칸 바로 아래에 오류를 보여주고 화면 낭독기와 연결
@@ -564,18 +646,54 @@ function stampFx(s) {
   el.setAttribute("role", "status");
   el.innerHTML = `<div>${icon(s.id)}STAMP<small>${esc(s.title)} 완료</small></div>`;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 800);
+  // 도장이 찍히는 순간(0.3초) 작은 도장·종잇조각이 사방으로 튀었다가 떨어짐. 움직임 줄이기 설정이면 생략
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const colors = [...INKS, "var(--gold)"];
+    for (let i = 0; i < 32; i++) {
+      const b = document.createElement("i");
+      b.className = `bit ${["ring", "dot", "paper"][i % 3]}`;
+      b.style.setProperty("--c", colors[i % colors.length]);
+      const a = Math.random() * Math.PI * 2, r = 90 + Math.random() * 130, x = Math.cos(a) * r, y = Math.sin(a) * r * 0.8 - 40, rot = (Math.random() - .5) * 540;
+      b.animate([
+        { transform: "translate(-50%, -50%) scale(.2)", opacity: 1 },
+        { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${rot / 2}deg)`, opacity: 1, offset: .4 },
+        { transform: `translate(calc(-50% + ${x * 1.15}px), calc(-50% + ${y + 180}px)) rotate(${rot}deg)`, opacity: 0 },
+      ], { duration: 1000 + Math.random() * 300, delay: 280, easing: "cubic-bezier(.2, .7, .4, 1)" }); // 기다리는 동안과 끝난 뒤엔 CSS의 opacity: 0
+      el.appendChild(b);
+    }
+  }
+  setTimeout(() => el.remove(), 1600);
 }
 
 // ---------- 이벤트 ----------
 document.addEventListener("click", (e) => {
   // 메뉴 바깥을 누르면 메뉴 닫기
   const menu = document.querySelector(".menu[open]");
-  if (menu && !menu.contains(e.target)) menu.open = false;
+  if (menu && (!menu.contains(e.target) || e.target === menu)) menu.open = false; // 서랍 뒤 어두운 배경(details::before)을 눌러도 닫힘
+  // 여행 기간 달력: 바깥을 누르면 닫힘, 달력 안 버튼은 달력만 다시 그림
+  const cal = document.getElementById("cal");
+  // 창 바깥 어두운 배경을 누르면 닫힘 (배경을 눌러도 대상은 dialog 자체라 위치로 구분, 창 안쪽 여백은 그대로)
+  if (cal?.open && e.target === cal) {
+    const r = cal.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return calUpdate(false);
+  }
   const t = e.target.closest("[data-tab],[data-act],[data-step],[data-item],[data-del]");
   if (!t) return;
   const d = t.dataset;
+  if (d.act === "cal") return calUpdate(!cal.open);
+  if (d.act === "cal-move") {
+    const [y, m] = cal.querySelector("[data-ym]").dataset.ym.split("-").map(Number);
+    pick.m = ymd(new Date(y, m - 1 + Number(d.n), 1)).slice(0, 7);
+    return calUpdate(true, `[data-n="${d.n}"]:not(:disabled)`);
+  }
+  if (d.act === "day") {
+    if (!pick.a || pick.b || d.date < pick.a) Object.assign(pick, { a: d.date, b: "" });
+    else pick.b = d.date;
+    pick.m = d.date.slice(0, 7);
+    return calUpdate(true, `[data-date="${d.date}"]`);
+  }
   if (d.tab) Object.assign(view, { tab: d.tab, step: null, item: null, photo: null, from: d.from || null });
+  if (d.act === "side") { state.side_closed = !state.side_closed; save(); render(); return document.querySelector(".side-toggle").focus(); }
   if (d.act === "photo-clear") view.photo = null;
   if (d.act === "q-clear") view.query = "";
   if (d.act === "manual-open") { view.photo.manual = {}; render(); return document.getElementById("mname").focus(); }
@@ -596,20 +714,19 @@ document.addEventListener("click", (e) => {
   }
   if (d.step) Object.assign(view, { tab: "road", step: d.step });
   if (d.item) Object.assign(view, { item: d.item, answers: {} });
-  if (d.del) { state.bag.splice(+d.del, 1); save(); }
   if (d.act === "back") Object.assign(view, { step: null, item: null });
   if (d.act === "reset") {
-    state = {}; save();
+    state = {}; pick = { a: "", b: "", m: "" }; save();
   }
   if (d.act === "start") {
-    const date = document.getElementById("d").value;
-    if (!date) return showErr("d", "출국일을 선택해 주세요.");
+    const { a: date, b: back } = pick;
+    if (!back) return showErr("period-btn", date ? "달력에서 오는 날을 눌러 주세요." : "달력에서 가는 날과 오는 날을 차례로 눌러 주세요.");
     // 새 여행은 빈 상태로 시작 (예전 여행의 체크·도장이 남지 않게)
-    state = { trip: { country: document.getElementById("c").value, departure_date: date } };
+    state = { trip: { country: document.getElementById("c").value, departure_date: date, return_date: back } };
     view = { tab: "stamps", step: null, item: null, query: "" };
     save();
   }
-  if (d.act === "search") Object.assign(view, { query: document.getElementById("q").value.trim(), photo: null });
+  if (d.act === "search") Object.assign(view, { query: d.q ?? document.getElementById("q").value.trim(), photo: null });
   if (d.act === "gate") {
     const typed = document.getElementById("gate").value, g = Number(typed);
     if (!Number.isInteger(g) || !gateBuilding(g)) {
@@ -632,7 +749,8 @@ document.addEventListener("click", (e) => {
     view.answers = { [item.rule.field]: unit === "mAh" ? (v / 1000) * 3.7 : v };
   }
   if (d.act === "add") {
-    (state.bag ||= []).push({ item_id: view.item, answers: view.answers || {}, added_at: new Date().toISOString() });
+    addOwn(view.item, view.answers);
+    view.open = [...new Set([...(view.open || []), "ck-내가 추가한 것"])]; // 담은 물건이 바로 보이게 펼침
     save();
     Object.assign(view, { tab: "bag", item: null, photo: null });
   }
@@ -650,7 +768,7 @@ function swap(update) {
 }
 
 document.addEventListener("change", (e) => {
-  if (e.target.id === "photo") return e.target.files[0] && identifyPhoto(e.target.files[0]);
+  if (e.target.id === "photo" || e.target.id === "photo-pick") return e.target.files[0] && identifyPhoto(e.target.files[0]);
   if (e.target.id === "ap") {
     state.airport = e.target.value;
     save();
@@ -711,7 +829,11 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.id === "own") document.querySelector('[data-act="own-add"]').click();
   if (e.key === "Enter" && e.target.id === "gate") document.querySelector('[data-act="gate"]').click();
   const menu = document.querySelector(".menu[open]");
+  const cal = document.getElementById("cal");
+  if (e.key === "Escape" && cal?.open) { e.preventDefault(); calUpdate(false); document.getElementById("period-btn").focus(); }
   if (e.key === "Escape" && menu) { menu.open = false; menu.querySelector("summary").focus(); }
 });
 
+// 예전에 "판정한 물건"으로 따로 담아 둔 것은 내가 추가한 것 목록으로 옮김
+if (state.bag?.length) { state.bag.forEach((b) => itemById(b.item_id) && addOwn(b.item_id, b.answers)); delete state.bag; save(); }
 render();
