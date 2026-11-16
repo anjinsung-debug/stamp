@@ -346,17 +346,13 @@
   .menu summary::after { content: ""; position: absolute; inset: -4px; } /* 보이는 크기는 36px, 누르는 영역은 44px 유지 */
   .menu summary::-webkit-details-marker { display: none; }
   .menu summary svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  /* 사이드바 메뉴 (휴대폰 서랍과 PC 왼쪽 칸이 같은 목록) */
-  .navlist { display: flex; flex-direction: column; gap: 2px; padding: 8px; background: var(--cover); border-radius: 22px; }
-  .navlist button { background: none; color: rgb(255 255 255 / .82); text-align: left; border-radius: 14px; }
-  .navlist button.on { color: var(--cover); background: var(--gold); font-weight: 700; }
-  .navlist .reset { margin-top: auto; border-top: 1px solid rgb(255 255 255 / .15); border-radius: 0 0 14px 14px; color: rgb(255 255 255 / .55); font-size: 14px; }
-  @media (hover: hover) and (pointer: fine) { .navlist button:hover { background: rgb(255 255 255 / .08); } .navlist button.on:hover { background: var(--gold); } }
-  /* 휴대폰: 왼쪽에서 밀려 나오는 서랍 + 뒤 어두운 배경 */
-  .menu nav { position: fixed; inset: 0 auto 0 0; z-index: 30; width: min(280px, 82vw); padding: calc(20px + env(safe-area-inset-top, 0px)) 12px calc(20px + env(safe-area-inset-bottom, 0px)); border-radius: 0 28px 28px 0; box-shadow: 8px 0 32px rgb(28 46 87 / .3); transition: transform 240ms var(--ease-out); }
-  .menu[open]::before { content: ""; position: fixed; inset: 0; z-index: 29; background: rgb(28 46 87 / .35); transition: opacity 240ms ease; }
-  @starting-style { .menu[open] nav { transform: translateX(-100%); } .menu[open]::before { opacity: 0; } }
-  .side { display: none; }
+  .menu nav { position: absolute; top: 44px; left: 0; z-index: 10; min-width: 200px; display: flex; flex-direction: column; padding: 8px; background: var(--cover); border-radius: 22px; box-shadow: 0 0 0 1px rgb(255 255 255 / .14), 0 8px 24px rgb(28 46 87 / .3); transform-origin: top left; transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); }
+  /* 메뉴는 왼쪽 위 버튼에서 펼쳐짐 */
+  @starting-style { .menu[open] nav { opacity: 0; transform: translateY(-4px) scale(.97); } }
+  .menu nav button { background: none; color: rgb(255 255 255 / .82); text-align: left; border-radius: 14px; }
+  .menu nav button.on { color: var(--cover); background: var(--gold); font-weight: 700; }
+  .menu nav .reset { margin-top: 6px; border-top: 1px solid rgb(255 255 255 / .15); border-radius: 0 0 14px 14px; color: rgb(255 255 255 / .55); font-size: 14px; }
+  @media (hover: hover) and (pointer: fine) { .menu nav button:hover { background: rgb(255 255 255 / .08); } }
 
   /* 여행경보 바로가기 */
   .alert { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; margin-top: 8px; padding: 12px 18px; border-radius: 18px; background: var(--paper); color: var(--red); font-weight: 700; text-decoration: none; box-shadow: inset 0 0 0 1px rgb(192 50 58 / .35), inset 4px 0 0 var(--red); }
@@ -441,34 +437,16 @@
     .todos input::after, .todo-prog .bar i { transition: none; }
     ::view-transition-new(root) { animation: vt-fade 240ms ease both; } /* 움직임 없이 흐려졌다 나타나기만 */
     .verdict, .menu nav { transition: opacity 160ms ease; }
-    @starting-style { .verdict { scale: 1; } .menu[open] nav { transform: none; opacity: 0; } }
+    @starting-style { .verdict { scale: 1; } .menu[open] nav { transform: none; } }
   }
   @keyframes vt-fade { from { opacity: 0; } }
 
-  /* 태블릿 가로·작은 노트북부터: 왼쪽 사이드바(로고 + 메뉴)는 늘 펼쳐 두고, 위쪽 머리글과 서랍 버튼은 숨김 */
-  @media (min-width: 720px) {
-    .wrap { max-width: 1080px; padding: 28px 24px 48px; }
-    header { display: none; }
-    .shell { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; align-items: start; }
-    .side { position: sticky; top: 28px; display: flex; flex-direction: column; gap: 20px; height: calc(100dvh - 56px); }
-    .side .navlist { flex: 1; padding: 10px; }
-    .narrow { max-width: 760px; width: 100%; }
-    /* 접기 버튼: 로고 옆. 접으면 버튼만 남은 좁은 칸 */
-    .side-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .side-toggle { flex: none; display: grid; place-items: center; width: 40px; height: 40px; min-height: 0; padding: 0; background: var(--paper); color: var(--cover); border: 1px solid var(--line); }
-    .side-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    @media (hover: hover) and (pointer: fine) { .side-toggle:hover { border-color: var(--cover); } }
-    .shell.closed { grid-template-columns: 40px minmax(0, 1fr); }
-    .shell.closed .side .mark, .shell.closed .side .navlist { display: none; }
-    .shell.closed .narrow { margin: 0 auto; }
-  }
-  /* PC: 본문이 넓어지면 도장 칸 4줄 */
+  /* PC: 상단 메뉴 + 2단 */
   @media (min-width: 900px) {
-    .wrap { padding: 28px 28px 48px; }
-    .shell { grid-template-columns: 220px minmax(0, 1fr); gap: 32px; }
-    .shell.closed { grid-template-columns: 40px minmax(0, 1fr); }
+    .wrap { max-width: 1080px; padding: 28px 28px 48px; }
     .visa { padding: 22px; }
     .slots { grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    .narrow, header { max-width: 720px; margin-left: auto; margin-right: auto; } /* 로고·메뉴를 본문과 같은 폭에 맞춤 */
   }
 </style>
 </head>

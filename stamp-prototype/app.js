@@ -102,17 +102,12 @@ function render() {
   if (!state.trip) return renderSetup();
   const tabs = [["stamps", "여행 로드맵"], ["road", "지금 할 일"], ["items", "물건 확인"], ["bag", "가방"]]
     .map(([k, t]) => `<button class="${view.tab === k ? "on" : ""}" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${t}</button>`).join("");
-  // 사이드바: 휴대폰은 왼쪽 위 버튼으로 여는 서랍(다시 그려지면 닫힘), PC는 왼쪽에 늘 펼쳐 둠
-  const nav = `<nav class="navlist" aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav>`;
+  // 왼쪽 위 메뉴: 화면이 다시 그려지면 자연스럽게 닫힘
   const head = `<header><details class="menu"><summary aria-label="메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    ${nav}</details>${mark}</header>`;
+    <nav aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav></details>${mark}</header>`;
   const body = view.tab === "reset" ? resetView() : view.tab === "road" ? roadView() : view.tab === "stamps" ? stampsView()
     : view.tab === "items" ? itemsView() : bagView();
-  // 큰 화면 사이드바 접기·펼치기 (접은 상태는 저장해 두고 다음에도 그대로)
-  const closed = !!state.side_closed;
-  const toggle = `<button class="side-toggle" data-act="side" aria-expanded="${!closed}" aria-label="사이드바 ${closed ? "펼치기" : "접기"}" title="사이드바 ${closed ? "펼치기" : "접기"}">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="${closed ? "M13 10l2 2-2 2" : "M16 10l-2 2 2 2"}"/></svg></button>`;
-  app.innerHTML = head + `<div class="shell${closed ? " closed" : ""}"><aside class="side"><div class="side-head">${mark}${toggle}</div>${nav}</aside><div class="narrow">${body}</div></div>`;
+  app.innerHTML = head + `<div class="narrow">${body}</div>`;
 }
 
 // 브라우저 확인 창(confirm)은 앱 안 브라우저에서 안 뜨는 경우가 있어 화면 안에서 물어봄
@@ -669,7 +664,7 @@ function stampFx(s) {
 document.addEventListener("click", (e) => {
   // 메뉴 바깥을 누르면 메뉴 닫기
   const menu = document.querySelector(".menu[open]");
-  if (menu && (!menu.contains(e.target) || e.target === menu)) menu.open = false; // 서랍 뒤 어두운 배경(details::before)을 눌러도 닫힘
+  if (menu && !menu.contains(e.target)) menu.open = false;
   // 여행 기간 달력: 바깥을 누르면 닫힘, 달력 안 버튼은 달력만 다시 그림
   const cal = document.getElementById("cal");
   // 창 바깥 어두운 배경을 누르면 닫힘 (배경을 눌러도 대상은 dialog 자체라 위치로 구분, 창 안쪽 여백은 그대로)
@@ -693,7 +688,6 @@ document.addEventListener("click", (e) => {
     return calUpdate(true, `[data-date="${d.date}"]`);
   }
   if (d.tab) Object.assign(view, { tab: d.tab, step: null, item: null, photo: null, from: d.from || null });
-  if (d.act === "side") { state.side_closed = !state.side_closed; save(); render(); return document.querySelector(".side-toggle").focus(); }
   if (d.act === "photo-clear") view.photo = null;
   if (d.act === "q-clear") view.query = "";
   if (d.act === "manual-open") { view.photo.manual = {}; render(); return document.getElementById("mname").focus(); }
