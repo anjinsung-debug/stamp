@@ -187,7 +187,8 @@ function mrz(days) {
 function nowStep() {
   const days = dday();
   const pool = days < 0 ? D.steps.filter((s) => s.during) : D.steps;
-  return pool.find((s) => !stepDone(s) && days <= s.start) || pool.find((s) => !stepDone(s));
+  // 여행 중인데 현지 단계를 다 끝냈으면, 아직 안 끝낸 출국 전 단계로 (모든 단계를 끝냈을 때만 없음)
+  return pool.find((s) => !stepDone(s) && days <= s.start) || pool.find((s) => !stepDone(s)) || D.steps.find((s) => !stepDone(s));
 }
 // 여권 화면에 보여 줄 단계: 이전/다음·도장으로 고른 단계, 없으면 지금 할 단계
 const currentStepId = () => view.step || nowStep()?.id;
@@ -216,23 +217,42 @@ function datapage() {
 // 지금 할 일: 지금 진행할 단계
 function roadView() {
   const id = currentStepId();
-  return `${id ? stepView(id) : `<div class="sheet"><h2 style="margin-top:0">모든 단계를 끝냈어요</h2><p>도장을 모두 모았어요. 즐거운 여행 되세요.</p><button data-tab="stamps">여행 로드맵 보기</button></div>`}`;
+  return `${id ? stepView(id) : `<div class="sheet"><h2 style="margin-top:0">모든 단계를 끝냈어요</h2><p>도장을 모두 모았어요. 즐거운 여행 되세요.</p><button data-tab="stamps">여행 로드맵 보기</button></div>${tipsView()}`}`;
 }
 
-// 진행 타임라인: 시작 날짜(D-60, D-45 …)별로 단계를 묶은 점 한 줄. 끝낸 점은 남색, 지금 할 점은 금색, 나머지는 회색
-function timeline() {
-  const now = nowStep();
-  const before = [...new Set(D.steps.filter((s) => !s.during).map((s) => s.start))]
-    .map((start) => ({ start, label: start ? `D-${start}` : "출국", steps: D.steps.filter((s) => !s.during && s.start === start) }));
-  const marks = [...before, { start: -1, label: "여행 중", steps: D.steps.filter((s) => s.during) }];
-  const nodes = marks.map((m) => {
-    const done = m.steps.every(stepDone), isNow = m.steps.includes(now);
-    const go = m.steps.find((s) => !stepDone(s)) || m.steps[0];
-    return `<li class="${done ? "done" : isNow ? "now" : ""}"><button data-step="${go.id}" aria-label="${m.label} ${m.steps.map((s) => s.title).join(", ")} · ${done ? "끝냄" : isNow ? "지금 할 일" : "아직"}">
-      <i aria-hidden="true"></i><b>${m.label}</b></button></li>`;
-  }).join("");
-  const tip = now ? `<p class="tl-now">지금 <b>${now.title}</b><small>${D.steps.filter(stepDone).length}/${D.steps.length}</small></p>` : "";
-  return `<section class="timeline" aria-label="진행 타임라인">${tip}<ol style="--n:${marks.length}">${nodes}</ol></section>`;
+// 여행 기간(가는 날~오는 날)과 겹치는 행사·연휴. 해마다 같은 날(md)은 여행이 걸친 해마다 맞춰 봄
+function tripEvents() {
+  const { departure_date: a, return_date: b = a } = state.trip;
+  const overlap = ([s, e]) => s <= b && e >= a; // "YYYY-MM-DD" 글자 비교 = 날짜 비교
+  return (country().events || []).filter((ev) => {
+    if (ev.dates) return ev.dates.some(overlap);
+    const [from, to] = ev.md;
+    for (let y = +a.slice(0, 4) - 1; y <= +b.slice(0, 4); y++)
+      if (overlap([`${y}-${from}`, `${from <= to ? y : y + 1}-${to}`])) return true;
+    return false;
+  });
+}
+
+function eventsView() {
+  const list = tripEvents(), c = country();
+  if (!list.length) return "";
+  const { departure_date: a, return_date: b = a } = state.trip;
+  const md = (x) => x.slice(-5).split("-").map(Number).join("."); // "07-01" → "7.1"
+  const when = (ev) => { const [s, e] = ev.md || ev.dates.find(([s, e]) => s <= b && e >= a); return `${md(s)} ~ ${md(e)}`; };
+  return `<section class="sheet events" aria-labelledby="ev-title"><h3 id="ev-title">여행 기간에 열리는 행사</h3>
+    <ul>${list.map((ev) => `<li><span class="ev-kind k-${ev.kind}">${ev.kind}</span><div><b>${ev.name}</b><small>${when(ev)}</small><p>${ev.note}</p></div></li>`).join("")}</ul>
+    <p class="footnote">날짜는 해마다 조금씩 달라요. 가기 전에 공식 안내에서 꼭 확인하세요.${c.eventsLink ? ` <a href="${c.eventsLink.url}" target="_blank" rel="noopener">${c.eventsLink.title} 보기</a>` : ""}</p></section>`;
+}
+
+// 할 일을 모두 끝냈을 때 보여 주는 여행 국가 꿀팁 (data.js countries[].tips)
+function tipsView() {
+  const c = country();
+  if (!c.tips?.length || !D.steps.every(stepDone)) return "";
+  const list = (title, items, cls = "") => `<h4>${title}</h4>
+    <ol class="${cls}">${items.map(([t, d], i) => `<li><span class="no" aria-hidden="true">${i + 1}</span><div><b>${t}</b><p>${d}</p></div></li>`).join("")}</ol>`;
+  return `<section class="sheet tips" aria-labelledby="tips-title"><h3 id="tips-title">${c.name} 여행 꿀팁</h3>
+    <p class="muted">준비는 끝! 떠나기 전에 한 번 읽어 두세요.</p>
+    ${list("생활 꿀팁", c.tips)}${c.manners?.length ? list("이것만은 지켜요 · 예절", c.manners, "manner") : ""}</section>`;
 }
 
 function stampsView() {
@@ -246,14 +266,18 @@ function stampsView() {
       : `<span>${icon(s.id)}<span class="t">${s.title}</span>${s === now ? "지금 할 일" : s.start > 0 ? `D-${s.start}부터` : "출국 당일부터"}</span>`;
     return `<button class="slot shape-${i % 3} ${isDone ? "done" : ""} ${s === now ? "now" : ""}" data-step="${s.id}" ${style} aria-label="${i + 1}단계 ${s.title}${isDone ? " 완료" : ""}">${inner}</button>`;
   }).join("");
-  return `<div class="home-top">${datapage()}${timeline()}</div>
+  return `${datapage()}${eventsView()}
     <section class="visa" aria-labelledby="col-title">
       <div class="col-head">
         <h2 id="col-title">여행 로드맵</h2>
         <div class="count" aria-label="도장 ${done}개 중 ${D.steps.length}개"><b>${two(done)}</b><span>/ ${D.steps.length}</span></div>
       </div>
+      <div class="road-prog">
+        <div class="bar" role="progressbar" aria-label="여행 준비 진행" aria-valuemin="0" aria-valuemax="${D.steps.length}" aria-valuenow="${done}"><i style="width:${done / D.steps.length * 100}%"></i></div>
+        <p>${now ? `지금 할 일 <button class="link" data-step="${now.id}">${now.title}</button>` : "모든 준비를 끝냈어요"}</p>
+      </div>
       <div class="slots">${slots}</div>
-    </section>`;
+    </section>${tipsView()}`;
 }
 
 // 여행경보 단계는 수시로 바뀌니 단계를 적지 않고 외교부 국가 페이지로 바로 연결

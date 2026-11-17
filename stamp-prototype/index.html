@@ -149,20 +149,14 @@
 
   /* 사증 면: 도장 칸 */
   .visa { background: var(--paper); border-radius: 28px; padding: 20px; margin-top: 16px; }
+  /* 여행 로드맵 제목 아래 진행 막대: 끝낸 단계 수만큼 채우고, 지금 할 단계로 바로 가기 */
+  .road-prog { display: flex; align-items: center; gap: 12px; margin: -4px 0 18px; }
+  .road-prog .bar { flex: 1; height: 6px; border-radius: 999px; background: rgb(28 46 87 / .1); overflow: hidden; }
+  .road-prog .bar i { display: block; height: 100%; border-radius: inherit; background: var(--cover); transition: width 300ms var(--ease-out); }
+  .road-prog p { margin: 0; flex: none; font-size: 14px; color: var(--muted); }
+  .road-prog .link { min-height: 0; padding: 0 2px; font-weight: 700; color: var(--cover); }
   .slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   /* 진행 타임라인: 마디 사이 선은 날짜가 지난 만큼 남색으로 채움 */
-  .timeline { margin-top: 16px; padding: 14px 12px 10px; border-radius: 28px; background: var(--paper); box-shadow: 0 0 0 1px rgb(28 46 87 / .06), 0 12px 32px rgb(28 46 87 / .07); }
-  .tl-now { display: flex; align-items: baseline; gap: 6px; margin: 0 6px 12px; color: var(--muted); font-size: 14px; }
-  .tl-now b { color: var(--ink); font-size: 15px; }
-  .tl-now small { margin-left: auto; font-size: 13px; font-variant-numeric: tabular-nums; }
-  .timeline ol { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; list-style: none; margin: 0; padding: 0; }
-  .timeline ol::before { content: ""; position: absolute; top: 9px; left: calc(50% / var(--n)); right: calc(50% / var(--n)); height: 2px; background: var(--line); }
-  .timeline button { position: relative; z-index: 1; display: grid; justify-items: center; gap: 6px; width: 100%; min-height: 0; padding: 0 0 4px; background: none; color: var(--muted); border-radius: 12px; }
-  .timeline i { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: var(--line); }
-  .timeline b { font-size: 12px; font-weight: 500; white-space: nowrap; }
-  .timeline .done i { background: var(--cover); }
-  .timeline .now i { width: 20px; height: 20px; margin-top: 0; background: var(--gold); }
-  .timeline .now b { color: var(--ink); font-weight: 700; }
   /* 도장 컬렉션 머리: 모은 개수를 크게 */
   .col-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px dotted var(--line); }
   .col-head h2 { margin: 0 0 4px; }
@@ -321,6 +315,28 @@
   /* 돋보기 버튼: 입력칸 높이에 맞춘 동그라미 */
   .icon-btn { flex: none; display: grid; place-items: center; align-self: stretch; aspect-ratio: 1; min-width: 44px; padding: 0; }
   .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  /* 여행 기간에 열리는 행사 */
+  .events { margin-top: 16px; }
+  .events h3 { margin: 0; }
+  .events ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  .events li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px dotted var(--line); }
+  .events b { color: var(--ink); }
+  .events small { margin-left: 8px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .events li p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .ev-kind { flex: none; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: var(--green); }
+  .ev-kind.k-혼잡 { background: var(--amber); } .ev-kind.k-계절 { background: var(--violet); }
+  .events .footnote a { white-space: nowrap; }
+  /* 할 일을 다 끝내면 나오는 나라별 꿀팁 */
+  .tips { margin-top: 16px; }
+  .tips h3 { margin: 0 0 2px; }
+  .tips h4 { margin: 18px 0 0; font-size: 14px; color: var(--cover); }
+  .tips .manner .no { background: var(--cover); color: #fff; } /* 예절은 남색 번호로 꿀팁과 구분 */
+  .tips ol { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+  .tips li { display: flex; gap: 12px; padding: 12px 0; border-top: 1px dotted var(--line); }
+  .tips .no { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--gold); color: var(--cover); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tips b { display: block; color: var(--ink); }
+  .tips li p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  @media (min-width: 900px) { .narrow.tab-stamps .tips ol { grid-template-columns: 1fr 1fr; column-gap: 28px; } }
   .own-add { margin-top: 16px; padding-top: 12px; border-top: 1px dotted var(--line); }
   .own-add label { margin-top: 0; }
   .own-add .row { display: flex; gap: 8px; }
@@ -457,9 +473,6 @@
     @media (hover: hover) and (pointer: fine) { .topnav button:not(.on):hover { background: #F1EEE6; color: var(--ink); } }
     /* 홈은 넓게 쓰고, 글이 많은 화면(지금 할 일·물건 확인·가방)은 읽기 좋은 폭으로 가운데 */
     .narrow:not(.tab-stamps) { max-width: 760px; margin: 0 auto; }
-    .home-top { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: stretch; }
-    .home-top .datapage { margin: 0; }
-    .home-top .timeline { margin: 0; display: flex; flex-direction: column; justify-content: center; padding: 20px 16px; }
     .visa { padding: 28px; margin-top: 20px; }
     .slots { grid-template-columns: repeat(5, 1fr); gap: 18px; }
   }
