@@ -385,11 +385,17 @@ function itemsView() {
     : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요.${rel.length ? " 혹시 이걸 찾으셨나요?" : " 공식 안내에서 확인하세요."}</p>
       ${rel.length ? `<div class="chips" aria-label="연관 검색어">${rel.map((w) => `<button data-act="search" data-q="${esc(w)}">${esc(w)}</button>`).join("")}</div>` : ""}
       ${D.fallbackLinks.map(srcLink).join("")}`;
+  // 모든 카테고리: 묶음별로 접고 펼치며 물건을 골라 바로 판정 (펼친 묶음은 view.open에 "it-아이디"로 유지)
+  const allCats = `<div class="groups all-cats">${D.groups.map((g) => `<details class="grp" data-grp="it-${g.id}" ${view.open?.includes(`it-${g.id}`) ? "open" : ""}>
+      <summary>${gicon(g.icon)}<span class="gname">${g.name}</span><span class="gmeta">${g.items.length}개</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      ${chips(g.items.map(itemById))}</details>`).join("")}</div>`;
   // 사진이 먼저, 그 아래 이름으로 찾기 (적는 동안 비슷한 물건이 자동완성으로 뜸)
   const byName = `<div class="by-name"><label for="q">이름으로 찾기</label>
-      <div class="row"><input id="q" enterkeyhint="search" autocomplete="off" placeholder="보조배터리, 육포, 감기약" value="${esc(view.query)}" aria-controls="q-suggest"><button class="ghost" data-act="search" style="flex:none">찾기</button></div>
+      <div class="row"><input id="q" enterkeyhint="search" autocomplete="off" placeholder="보조배터리, 육포, 감기약" value="${esc(view.query)}" aria-controls="q-suggest"><button class="ghost icon-btn" data-act="search" aria-label="찾기" title="찾기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></div>
       <div id="q-suggest"></div>
-      ${view.query ? `${found}<p class="footnote"><button class="link" data-act="q-clear">지우고 다시 찾기</button></p>` : ""}</div>`;
+      ${view.query ? found : ""}
+      <p class="footnote"><button class="link" data-act="all-cats" aria-expanded="${!!view.allCats}">${view.allCats ? "모든 카테고리 접기" : "모든 카테고리 확인하기"}</button></p>
+      ${view.allCats ? allCats : ""}</div>`;
   const camera = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
   const album = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M5 18l5-5 4 4 2-2 3 3"/></svg>`;
   // 단계 화면(짐 싸기 등)에서 들어왔을 때만, 카드 아래에 그 단계로 돌아가는 버튼
@@ -422,7 +428,7 @@ function suggestView(q) {
   if (!n) return "";
   const has = (w) => w.replace(/\s/g, "").includes(n);
   const list = D.items.filter((i) => has(i.name) || i.aliases.some(has)).slice(0, 8);
-  if (!list.length) return `<p class="footnote" role="status">비슷한 물건이 없어요. 찾기를 누르면 공식 안내를 알려 드려요.</p>`;
+  if (!list.length) return `<p class="footnote" role="status">비슷한 물건이 없어요. 돋보기를 누르면 공식 안내를 알려 드려요.</p>`;
   const banned = new Set(country().rules.filter((r) => r.level === "banned").flatMap((r) => r.items));
   return `<ul class="suggest" aria-label="비슷한 물건">${list.map((i) => `<li><button data-item="${i.id}">${esc(i.name)}${banned.has(i.id)
     ? `<span class="ban">${country().name} 금지</span>` : ""}</button></li>`).join("")}</ul>`;
@@ -693,7 +699,7 @@ document.addEventListener("click", (e) => {
   }
   if (d.tab) Object.assign(view, { tab: d.tab, step: null, item: null, photo: null, from: d.from || null });
   if (d.act === "photo-clear") view.photo = null;
-  if (d.act === "q-clear") view.query = "";
+  if (d.act === "all-cats") view.allCats = !view.allCats;
   if (d.act === "manual-open") { view.photo.manual = {}; render(); return document.getElementById("mname").focus(); }
   if (d.act === "manual-check") return checkManual();
   if (d.act === "own-add") {

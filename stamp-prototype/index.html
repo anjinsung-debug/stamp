@@ -318,6 +318,9 @@
   /* 판정해서 담은 물건: 이름 아래 판정 (기내 가방·위탁 가방 등) */
   .vtag { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
   .vtag.v-no { color: var(--red); } .vtag.v-carry_on_only { color: var(--violet); } .vtag.v-checked_only { color: var(--amber); } .vtag.v-both { color: var(--green); }
+  /* 돋보기 버튼: 입력칸 높이에 맞춘 동그라미 */
+  .icon-btn { flex: none; display: grid; place-items: center; align-self: stretch; aspect-ratio: 1; min-width: 44px; padding: 0; }
+  .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
   .own-add { margin-top: 16px; padding-top: 12px; border-top: 1px dotted var(--line); }
   .own-add label { margin-top: 0; }
   .own-add .row { display: flex; gap: 8px; }
