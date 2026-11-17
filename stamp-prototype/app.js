@@ -104,10 +104,11 @@ function render() {
     .map(([k, t]) => `<button class="${view.tab === k ? "on" : ""}" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${t}</button>`).join("");
   // 왼쪽 위 메뉴: 화면이 다시 그려지면 자연스럽게 닫힘
   const head = `<header><details class="menu"><summary aria-label="메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <nav aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav></details>${mark}</header>`;
+    <nav aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav></details>${mark}
+    <nav class="topnav" aria-label="주 메뉴">${tabs}<button class="reset" data-tab="reset">여행지 바꾸기</button></nav></header>`;
   const body = view.tab === "reset" ? resetView() : view.tab === "road" ? roadView() : view.tab === "stamps" ? stampsView()
     : view.tab === "items" ? itemsView() : bagView();
-  app.innerHTML = head + `<div class="narrow">${body}</div>`;
+  app.innerHTML = head + `<div class="narrow tab-${view.tab}">${body}</div>`;
 }
 
 // 브라우저 확인 창(confirm)은 앱 안 브라우저에서 안 뜨는 경우가 있어 화면 안에서 물어봄
@@ -245,7 +246,7 @@ function stampsView() {
       : `<span>${icon(s.id)}<span class="t">${s.title}</span>${s === now ? "지금 할 일" : s.start > 0 ? `D-${s.start}부터` : "출국 당일부터"}</span>`;
     return `<button class="slot shape-${i % 3} ${isDone ? "done" : ""} ${s === now ? "now" : ""}" data-step="${s.id}" ${style} aria-label="${i + 1}단계 ${s.title}${isDone ? " 완료" : ""}">${inner}</button>`;
   }).join("");
-  return `${datapage()}${timeline()}
+  return `<div class="home-top">${datapage()}${timeline()}</div>
     <section class="visa" aria-labelledby="col-title">
       <div class="col-head">
         <h2 id="col-title">여행 로드맵</h2>
