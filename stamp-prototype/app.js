@@ -405,8 +405,12 @@ function itemsView() {
   const notes = hitRules.map((r) =>
     `<div class="note lv-${r.level}"><b>${c.name} ${LEVEL[r.level]} · ${r.items.map((id) => esc(itemById(id).name)).join(", ")}</b>${r.message}</div>`).join("");
   const rel = related(view.query);
+  const ai = view.ai?.q === view.query ? view.ai : null; // 이 검색어로 AI에게 물어본 결과
   const found = hits.length ? chips(hits) + notes
-    : `<p style="margin-top:12px">"${esc(view.query)}"은(는) 아직 규정표에 없어요.${rel.length ? " 혹시 이걸 찾으셨나요?" : " 공식 안내에서 확인하세요."}</p>
+    : ai?.status === "loading" ? `<p class="photo-msg" role="status">규정표에서 같은 물건을 AI가 찾고 있어요…</p>`
+    : ai?.ids.length ? `<p class="photo-msg" role="status">"${esc(view.query)}"은(는) 이 물건인가요? 눌러서 반입 규정을 확인하세요.</p>${chips(ai.ids.map(itemById))}
+      <p class="footnote">AI가 이름을 보고 고른 규정표 물건이에요. 판정은 공식 규정표로 해요.</p>`
+    : `<p style="margin-top:12px">${ai?.failed ? "지금은 AI 확인이 어려워요. " : ""}"${esc(view.query)}"은(는) 아직 규정표에 없어요.${rel.length ? " 혹시 이걸 찾으셨나요?" : " 공식 안내에서 확인하세요."}</p>
       ${rel.length ? `<div class="chips" aria-label="연관 검색어">${rel.map((w) => `<button data-act="search" data-q="${esc(w)}">${esc(w)}</button>`).join("")}</div>` : ""}
       ${D.fallbackLinks.map(srcLink).join("")}`;
   // 모든 카테고리: 묶음별로 접고 펼치며 물건을 골라 바로 판정 (펼친 묶음은 view.open에 "it-아이디"로 유지)
@@ -513,6 +517,25 @@ function manualView(preset = "") {
     ${out}</div>`;
 }
 
+// 글로 적은 물건을 AI에게 보여 주고 규정표 물건 후보를 받음 (AI는 고르기만, 판정은 규정표로)
+async function identifyText(text, group = "") {
+  const r = await fetch("/api/identify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, group: group || null }) });
+  if (!r.ok) throw r;
+  const data = await r.json();
+  return { ...data, ids: [...new Set([data.item_id, ...(data.candidates || [])])].filter((id) => id && id !== "unknown" && itemById(id)) };
+}
+
+// 이름으로 찾기: 규정표 이름에 없으면 AI에게 같은 물건을 물어봄
+async function runSearch(q) {
+  Object.assign(view, { query: q, photo: null, ai: null });
+  if (!q || search(q).length) return render();
+  view.ai = { q, status: "loading", ids: [] };
+  render();
+  try { view.ai = { q, status: "done", ids: (await identifyText(q.slice(0, 60))).ids }; }
+  catch { view.ai = { q, status: "done", ids: [], failed: true }; } // AI 확인 실패: 규정표에 없다고 단정하지 않음
+  if (view.tab === "items" && !view.item && view.query === q) render(); // 그 사이 다른 화면으로 갔거나 다시 검색했으면 그대로
+}
+
 async function checkManual() {
   const text = document.getElementById("mname").value.trim();
   const group = document.getElementById("mgroup").value;
@@ -526,11 +549,8 @@ async function checkManual() {
   photo.manual = { text, group, status: "loading" };
   render();
   try {
-    const r = await fetch("/api/identify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, group: group || null }) });
-    if (!r.ok) throw r;
-    const data = await r.json();
-    ids = [...new Set([data.item_id, ...(data.candidates || [])])].filter((id) => id && id !== "unknown" && itemById(id));
-    photo.manual = { text, group: group || (data.group !== "unknown" ? data.group : ""), status: "done", ids, by: "ai" };
+    const data = await identifyText(text, group);
+    photo.manual = { text, group: group || (data.group !== "unknown" ? data.group : ""), status: "done", ids: data.ids, by: "ai" };
   } catch {
     photo.manual = { text, group, status: "done", ids: [], by: "ai", failed: true }; // AI 확인 실패: 규정표에 없다고 단정하지 않음
   }
@@ -754,7 +774,7 @@ document.addEventListener("click", (e) => {
     view = { tab: "stamps", step: null, item: null, query: "" };
     save();
   }
-  if (d.act === "search") Object.assign(view, { query: d.q ?? document.getElementById("q").value.trim(), photo: null });
+  if (d.act === "search") return runSearch(d.q ?? document.getElementById("q").value.trim());
   if (d.act === "gate") {
     const typed = document.getElementById("gate").value, g = Number(typed);
     if (!Number.isInteger(g) || !gateBuilding(g)) {
@@ -851,7 +871,7 @@ document.addEventListener("input", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && e.target.id === "q") { Object.assign(view, { query: e.target.value.trim(), photo: null }); render(); }
+  if (e.key === "Enter" && e.target.id === "q") runSearch(e.target.value.trim());
   if (e.isComposing) return; // 한글 입력 중 엔터는 글자 확정용이라 무시 (마지막 글자가 두 번 들어가지 않게)
   if (e.key === "Enter" && e.target.id === "mname") checkManual();
   if (e.key === "Enter" && e.target.id === "own") document.querySelector('[data-act="own-add"]').click();
